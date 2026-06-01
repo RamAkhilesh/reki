@@ -103,9 +103,6 @@ final typeFilterProvider = StateProvider<String?>((ref) => null);
 final sortOrderProvider =
     StateProvider<SortOrder>((ref) => SortOrder.recentlyAdded);
 
-// Minimum rating filter (out of 10) — null means no filter
-final minRatingFilterProvider = StateProvider<int?>((ref) => null);
-
 // Genre filter — null means no filter
 final genreFilterProvider = StateProvider<String?>((ref) => null);
 
@@ -114,11 +111,9 @@ final genreFilterProvider = StateProvider<String?>((ref) => null);
 final hasActiveFiltersProvider = Provider<bool>((ref) {
   final status = ref.watch(statusFilterProvider);
   final sort = ref.watch(sortOrderProvider);
-  final minRating = ref.watch(minRatingFilterProvider);
   final genre = ref.watch(genreFilterProvider);
   return status != null ||
       sort != SortOrder.recentlyAdded ||
-      minRating != null ||
       genre != null;
 });
 
@@ -128,7 +123,6 @@ final libraryBookmarksProvider = Provider<AsyncValue<List<Bookmark>>>((ref) {
   final typeFilter = ref.watch(typeFilterProvider);
   final statusFilter = ref.watch(statusFilterProvider);
   final sortOrder = ref.watch(sortOrderProvider);
-  final minRating = ref.watch(minRatingFilterProvider);
   final genre = ref.watch(genreFilterProvider);
 
   return bookmarksAsync.whenData((list) {
@@ -139,10 +133,6 @@ final libraryBookmarksProvider = Provider<AsyncValue<List<Bookmark>>>((ref) {
     }
     if (statusFilter != null) {
       filtered = filtered.where((b) => b.status == statusFilter).toList();
-    }
-    if (minRating != null) {
-      filtered =
-          filtered.where((b) => (b.rating ?? 0) >= minRating).toList();
     }
     if (genre != null) {
       filtered =
@@ -331,6 +321,15 @@ class CollapsedStatusGroupsNotifier
       tabSet.add(status);
     }
     next[tabType] = tabSet;
+    state = next;
+    _persist();
+  }
+
+  void setCollapsedForTab(String tabType, Set<String> collapsed) {
+    final next = Map<String, Set<String>>.from(
+      state.map((k, v) => MapEntry(k, Set<String>.from(v))),
+    );
+    next[tabType] = Set<String>.from(collapsed);
     state = next;
     _persist();
   }

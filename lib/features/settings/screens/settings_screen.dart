@@ -1,5 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // lib/features/settings/screens/settings_screen.dart
+// Prism redesign — glass settings screen.
 // ─────────────────────────────────────────────────────────────
 
 import 'dart:convert';
@@ -10,13 +11,16 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/router/app_router.dart';
+import '../../../core/theme/prism_tokens.dart';
 import '../../../data/models/bookmark.dart';
 import '../../../data/models/media_item.dart';
+import '../../../shared/widgets/glass_card.dart';
 import '../../auth/providers/auth_providers.dart';
 import '../../bookmarks/providers/bookmark_providers.dart';
 import '../../library/providers/library_providers.dart';
@@ -33,7 +37,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
-    // Detect first sign-in to trigger local-data migration
     ref.listen(authProvider, (prev, next) {
       final wasGuest = prev?.value is AuthStateUnauthenticated ||
           prev?.value == null ||
@@ -44,105 +47,180 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }
     });
 
-    final authAsync = ref.watch(authProvider);
+    final authAsync  = ref.watch(authProvider);
     final colorTheme = ref.watch(appColorThemeProvider);
-    final themeMode = ref.watch(appThemeModeProvider);
+    final themeMode  = ref.watch(appThemeModeProvider);
     final isSignedIn = ref.watch(isAuthenticatedProvider);
+    final ink        = P.ink(context);
 
-    final tt = Theme.of(context).textTheme;
+    return Stack(
+      children: [
+        // ── Backdrop ──────────────────────────────────────
+        const Positioned.fill(child: PrismBackdrop()),
 
-    return Scaffold(
-      body: SafeArea(
-        child: ListView(
-          children: [
-          // ── Title ──────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
-            child: Text(
-              'Settings',
-              style: tt.headlineMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ),
-
-          // ── 1. Account ─────────────────────────────────
-          _SectionHeader('Account'),
-          authAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, st) => const SizedBox.shrink(),
-              data: (auth) => auth is AuthStateAuthenticated
-                  ? _SignedInAccountTile(user: auth.user)
-                  : _GuestAccountCard(),
+        // ── Content ───────────────────────────────────────
+        CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(height: MediaQuery.of(context).padding.top + 8),
             ),
 
-          // ── 2. Appearance ──────────────────────────────
-          _SectionHeader('Appearance'),
-          _SettingsGroup(children: [
-            const SizedBox(height: 10),
-            _ThemeModeSegment(current: themeMode),
-            const SizedBox(height: 10),
-            _ColorSwatchRow(current: colorTheme),
-            const SizedBox(height: 10),
-          ]),
-
-          // ── 3. Library ─────────────────────────────────
-          _SectionHeader('Library'),
-          _SettingsGroup(children: [
-            ListTile(
-              leading: const Icon(Icons.tab_outlined),
-              title: const Text('Tab order'),
-              subtitle: const Text('Reorder and show/hide media type tabs'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const LibraryTabSettingsScreen(),
+            // ── Title ──────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
+                child: Text(
+                  'Settings',
+                  style: GoogleFonts.inter(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w700,
+                    color: ink,
+                    letterSpacing: -0.035 * 32,
+                    height: 1,
+                  ),
                 ),
               ),
             ),
-          ]),
 
-          // ── 4. Data & Backup ───────────────────────────
-          _SectionHeader('Data & Backup'),
-          _SettingsGroup(children: [
-            ListTile(
-              leading: const Icon(Icons.upload_file_outlined),
-              title: const Text('Export data'),
-              subtitle: const Text('Save bookmarks as JSON'),
-              onTap: isSignedIn ? _exportData : _showSignInSnackbar,
+            // ── Profile card ────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 6),
+                child: authAsync.when(
+                  loading: () => GlassCard(
+                    radius: 22,
+                    child: const SizedBox(
+                      height: 80,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+                  error: (_, _) => const SizedBox.shrink(),
+                  data: (auth) => auth is AuthStateAuthenticated
+                      ? _ProfileCard(user: auth.user)
+                      : _GuestCard(),
+                ),
+              ),
             ),
-            const Divider(height: 1, indent: 56, endIndent: 16),
-            ListTile(
-              leading: const Icon(Icons.download_outlined),
-              title: const Text('Import data'),
-              subtitle: const Text('Restore from JSON backup'),
-              onTap: isSignedIn ? _importData : _showSignInSnackbar,
+
+            // ── Appearance ──────────────────────────────────
+            _PSection(label: 'Appearance', children: [
+              // Display mode
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Display mode',
+                      style: GoogleFonts.inter(
+                        fontSize: 13, fontWeight: FontWeight.w600, color: ink,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _SegmentedMode(current: themeMode),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Color theme
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Color theme',
+                      style: GoogleFonts.inter(
+                        fontSize: 13, fontWeight: FontWeight.w600, color: ink,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _ColorSwatchRow(current: colorTheme),
+                  ],
+                ),
+              ),
+            ]),
+
+            // ── Library ─────────────────────────────────────
+            _PSection(label: 'Library', children: [
+              _PLink(
+                label: 'Tab order',
+                hint: 'Reorder and show/hide media type tabs',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const LibraryTabSettingsScreen(),
+                  ),
+                ),
+              ),
+            ]),
+
+            // ── Data & Backup ───────────────────────────────
+            _PSection(label: 'Data & Backup', children: [
+              _PLink(
+                label: 'Export data',
+                hint: 'Save bookmarks as JSON',
+                onTap: isSignedIn ? _exportData : _showSignInSnackbar,
+              ),
+              _PLink(
+                label: 'Import data',
+                hint: 'Restore from JSON backup',
+                onTap: isSignedIn ? _importData : _showSignInSnackbar,
+                first: false,
+              ),
+            ]),
+
+            // ── Statistics ──────────────────────────────────
+            _PSection(label: 'Statistics', children: [
+              _PLink(
+                label: 'Statistics',
+                trailing: _ComingSoon(),
+                onTap: null,
+              ),
+            ]),
+
+            // ── About ───────────────────────────────────────
+            _PSection(label: 'About', children: [
+              _PLink(
+                label: 'Source code',
+                hint: 'View or contribute on GitHub',
+                onTap: () => _launch('https://github.com/RamAkhilesh/reki'),
+              ),
+              _PLink(
+                label: 'Report a bug',
+                hint: 'Open an issue on GitHub',
+                first: false,
+                onTap: () => _launch('https://github.com/RamAkhilesh/reki/issues'),
+              ),
+              _PLink(
+                label: 'Open-source licenses',
+                first: false,
+                onTap: () => showLicensePage(
+                  context: context,
+                  applicationName: 'reki',
+                ),
+              ),
+            ]),
+
+            // ── Footer ──────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 40, 0, 0),
+                child: Center(
+                  child: Text(
+                    'reki · made with care',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: P.inkDimmer(context),
+                      letterSpacing: 0.02,
+                    ),
+                  ),
+                ),
+              ),
             ),
-          ]),
-
-          // ── 5. Statistics ──────────────────────────────
-          _SectionHeader('Statistics'),
-          _SettingsGroup(children: [
-            ListTile(
-              leading: const Icon(Icons.bar_chart_outlined),
-              title: const Text('Statistics'),
-              trailing: _ComingSoonBadge(),
-              onTap: null,
-            ),
-          ]),
-
-          // ── 6. About ───────────────────────────────────
-          _SectionHeader('About'),
-          const _AboutCard(),
-
-          const SizedBox(height: 8),
-        ],
-      ),
-      ),
+            const SliverToBoxAdapter(child: SizedBox(height: 110)),
+          ],
+        ),
+      ],
     );
   }
 
@@ -195,18 +273,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       }).toList(),
     };
 
-    final json = const JsonEncoder.withIndent('  ').convert(payload);
+    final json      = const JsonEncoder.withIndent('  ').convert(payload);
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final fileName = 'reki_export_$timestamp.json';
+    final fileName  = 'reki_export_$timestamp.json';
 
     final tempDir = await getTemporaryDirectory();
-    final file = File('${tempDir.path}/$fileName');
+    final file    = File('${tempDir.path}/$fileName');
     await file.writeAsString(json);
 
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      subject: 'reki Data Export',
-    );
+    await Share.shareXFiles([XFile(file.path)], subject: 'reki Data Export');
   }
 
   Future<void> _importData() async {
@@ -221,9 +296,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     try {
       final content = await File(path).readAsString();
-      final data = jsonDecode(content) as Map<String, dynamic>;
-      final version = data['version'] as int?;
-      if (version != 1) {
+      final data    = jsonDecode(content) as Map<String, dynamic>;
+      if ((data['version'] as int?) != 1) {
         _showSnackbar('Unsupported export version. Cannot import.');
         return;
       }
@@ -231,9 +305,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final rawBookmarks =
           (data['bookmarks'] as List<dynamic>).cast<Map<String, dynamic>>();
       final existing = ref.read(bookmarkListProvider).value ?? [];
-
-      // Use composite source:externalId key — avoids false-positive dedup when
-      // different sources happen to share the same numeric ID.
       final existingKeys = existing
           .map((b) => '${b.mediaItem.source}:${b.mediaItem.externalId}')
           .toSet();
@@ -242,7 +313,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       int skipped = 0;
       for (final bJson in rawBookmarks) {
         final miJson = bJson['media_item'] as Map<String, dynamic>;
-        final key = '${miJson['source']}:${miJson['external_id']}';
+        final key    = '${miJson['source']}:${miJson['external_id']}';
         if (existingKeys.contains(key)) {
           skipped++;
         } else {
@@ -253,20 +324,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (toImport.isEmpty) {
         _showSnackbar(
           skipped > 0
-              ? 'Nothing new — $skipped item${skipped == 1 ? '' : 's'} already in library.'
+              ? 'Nothing new — $skipped already in library.'
               : 'Export file contains no bookmarks.',
         );
         return;
       }
 
-      // Run all upserts in parallel — one network round trip per item instead of N serial calls.
       final repo = ref.read(bookmarkRepositoryProvider);
       await Future.wait(
         toImport.map((bJson) async {
-          final miJson = bJson['media_item'] as Map<String, dynamic>;
-          // Validate status — fall back to wantToWatch for unknown values.
+          final miJson   = bJson['media_item'] as Map<String, dynamic>;
           final rawStatus = bJson['status'] as String? ?? BookmarkStatus.wantToWatch;
-          final status = BookmarkStatus.all.contains(rawStatus)
+          final status   = BookmarkStatus.all.contains(rawStatus)
               ? rawStatus
               : BookmarkStatus.wantToWatch;
 
@@ -301,9 +370,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         }),
       );
 
-      // Refresh the list from the server now that all rows are written.
       ref.invalidate(bookmarkListProvider);
-
       final n = toImport.length;
       _showSnackbar(
         'Imported $n item${n == 1 ? '' : 's'}'
@@ -314,427 +381,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  void _showSnackbar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-  }
-}
-
-// ── Section header ─────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  const _SectionHeader(this.title);
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 16, 4),
-      child: Text(
-        title.toUpperCase(),
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: cs.primary,
-              letterSpacing: 1.2,
-              fontWeight: FontWeight.w800,
-            ),
-      ),
-    );
-  }
-}
-
-// ── Settings group (elevated surface background) ───────────────
-
-class _SettingsGroup extends StatelessWidget {
-  final List<Widget> children;
-  const _SettingsGroup({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      child: Material(
-        color: cs.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(16),
-        clipBehavior: Clip.hardEdge,
-        child: Column(children: children),
-      ),
-    );
-  }
-}
-
-// ── Account: guest card ────────────────────────────────────────
-
-class _GuestAccountCard extends ConsumerWidget {
-  const _GuestAccountCard();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Card(
-        color: cs.surfaceContainerHigh,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.storage_rounded, color: cs.primary, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Local storage',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Your data is stored locally. Sign in to back it up and sync across devices.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: cs.onSurfaceVariant),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => context.push(AppRoutes.login),
-                      child: const Text('Sign In'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        shape: const StadiumBorder(),
-                        minimumSize: const Size(0, 40),
-                      ),
-                      onPressed: () => context.push(AppRoutes.register),
-                      child: const Text('Sign Up'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Account: signed-in tile ────────────────────────────────────
-
-class _SignedInAccountTile extends ConsumerWidget {
-  final dynamic user; // supabase_flutter User
-
-  const _SignedInAccountTile({required this.user});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    final email = user.email as String? ?? 'No email';
-
-    Future<void> confirmDelete() async {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Sign out and delete account?'),
-          content: const Text(
-            'This will sign you out. Your data on the server is not removed automatically — '
-            'contact support to permanently delete your account.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: cs.error,
-                foregroundColor: cs.onError,
-              ),
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Delete'),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmed == true) {
-        await ref.read(authProvider.notifier).deleteAccount();
-      }
-    }
-
-    return Column(
-      children: [
-        ListTile(
-          leading: CircleAvatar(
-            backgroundColor: cs.primaryContainer,
-            child: Text(
-              email.isNotEmpty ? email[0].toUpperCase() : '?',
-              style: TextStyle(
-                color: cs.onPrimaryContainer,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          title: const Text('Signed in as'),
-          subtitle: Text(email),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () async {
-                    await ref.read(authProvider.notifier).signOut();
-                  },
-                  child: const Text('Sign Out'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: cs.error,
-                    foregroundColor: cs.onError,
-                    side: BorderSide.none,
-                  ),
-                  onPressed: confirmDelete,
-                  child: const Text('Delete Account'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Color swatch row ───────────────────────────────────────────
-
-class _ColorSwatchRow extends ConsumerWidget {
-  final AppColorTheme current;
-  const _ColorSwatchRow({required this.current});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Hide Dynamic on non-Android platforms
-    final showDynamic = !kIsWeb && Platform.isAndroid;
-    final themes = AppColorTheme.values
-        .where((t) => t != AppColorTheme.dynamic || showDynamic)
-        .toList();
-    final cs = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 0, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Text(
-              'Color theme',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: cs.onSurface),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 82,
-            child: Stack(
-              children: [
-                ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: themes.length,
-                  separatorBuilder: (ctx, idx) => const SizedBox(width: 16),
-                  padding: const EdgeInsets.only(right: 16),
-                  itemBuilder: (context, i) {
-                    final theme = themes[i];
-                    return _ColorSwatch(
-                      theme: theme,
-                      isSelected: theme == current,
-                      onTap: () =>
-                          ref.read(appColorThemeProvider.notifier).set(theme),
-                    );
-                  },
-                ),
-                // Right-edge fade — hints there are more themes to scroll to
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: IgnorePointer(
-                    child: Container(
-                      width: 56,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            cs.surfaceContainerHigh.withAlpha(0),
-                            cs.surfaceContainerHigh,
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ColorSwatch extends StatelessWidget {
-  final AppColorTheme theme;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _ColorSwatch({
-    required this.theme,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final seedColor = theme.seedColor;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              // Outer selection ring
-              if (isSelected)
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: cs.onSurface, width: 2.5),
-                  ),
-                ),
-              // Swatch circle
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: seedColor,
-                  gradient: seedColor == null
-                      ? const LinearGradient(
-                          colors: [
-                            Color(0xFF6750A4),
-                            Color(0xFF1A6B8A),
-                            Color(0xFF2D6A4F),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        )
-                      : null,
-                ),
-                child: isSelected
-                    ? const Icon(Icons.check, color: Colors.white, size: 22)
-                    : null,
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            theme.label,
-            style: Theme.of(context).textTheme.labelSmall,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Theme mode segmented button ────────────────────────────────
-
-class _ThemeModeSegment extends ConsumerWidget {
-  final ThemeMode current;
-  const _ThemeModeSegment({required this.current});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Display mode',
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Theme.of(context).colorScheme.onSurface),
-          ),
-          const SizedBox(height: 6),
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<ThemeMode>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(
-                  value: ThemeMode.light,
-                  label: Text('Light'),
-                  icon: Icon(Icons.light_mode_outlined),
-                ),
-                ButtonSegment(
-                  value: ThemeMode.system,
-                  label: Text('System'),
-                  icon: Icon(Icons.brightness_auto_outlined),
-                ),
-                ButtonSegment(
-                  value: ThemeMode.dark,
-                  label: Text('Dark'),
-                  icon: Icon(Icons.dark_mode_outlined),
-                ),
-              ],
-              selected: {current},
-              onSelectionChanged: (set) =>
-                  ref.read(appThemeModeProvider.notifier).set(set.first),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-// ── About card ────────────────────────────────────────────────
-
-class _AboutCard extends ConsumerWidget {
-  const _AboutCard();
-
-  Future<void> _launch(BuildContext context, String url) async {
+  Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (context.mounted) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not open link.')),
         );
@@ -742,135 +392,248 @@ class _AboutCard extends ConsumerWidget {
     }
   }
 
+  void _showSnackbar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+// ── Profile card (signed-in) ──────────────────────────────────
+
+class _ProfileCard extends ConsumerWidget {
+  final dynamic user;
+  const _ProfileCard({required this.user});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final pkgAsync = ref.watch(packageInfoProvider);
+    final email  = (user.email as String?) ?? 'No email';
+    final initial = email.isNotEmpty ? email[0].toUpperCase() : '?';
+    final ink    = P.ink(context);
+    final inkDim = P.inkDim(context);
+    final acc    = P.accent(context);
+    final acc2   = P.accent2(context);
+    final acc3   = P.accent3(context);
 
-    final version = pkgAsync.when(
-      data: (info) => 'v${info.version}',
-      loading: () => '',
-      error: (_, _) => '',
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      child: Material(
-        color: cs.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(16),
-        clipBehavior: Clip.hardEdge,
+    return GlassCard(
+      radius: 22,
+      tint: acc,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── App identity ──────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-              child: Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: cs.primaryContainer,
-                      borderRadius: BorderRadius.circular(18),
+            Row(
+              children: [
+                // Avatar
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [acc, acc2],
                     ),
-                    child: Icon(
-                      Icons.movie_filter_rounded,
-                      size: 30,
-                      color: cs.onPrimaryContainer,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withAlpha(77),
+                        offset: const Offset(0, 0.5),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      initial,
+                      style: GoogleFonts.inter(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Column(
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'reki',
-                        style: tt.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.5,
+                        email.split('@').first,
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: ink,
+                          letterSpacing: -0.02,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Your personal media library',
-                        style: tt.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
+                        email,
+                        style: GoogleFonts.inter(
+                          fontSize: 11, color: inkDim,
                         ),
                       ),
-                      if (version.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: cs.secondaryContainer,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            version,
-                            style: tt.labelSmall?.copyWith(
-                              color: cs.onSecondaryContainer,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
-                ],
-              ),
+                ),
+                GlassButton(
+                  size: 34,
+                  onTap: () async {
+                    await ref.read(authProvider.notifier).signOut();
+                  },
+                  child: Icon(Icons.logout_rounded, size: 16, color: ink),
+                ),
+              ],
             ),
+            const SizedBox(height: 16),
+            // Stats row
+            Consumer(builder: (ctx, ref2, _) {
+              final all = ref2.watch(bookmarkListProvider).value ?? [];
+              final done = all.where((b) => b.status == 'completed').length;
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: P.isDark(ctx)
+                      ? Colors.black.withAlpha(51)
+                      : const Color(0xFF14121C).withAlpha(18),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: P.isDark(ctx)
+                        ? P.borderSoft(ctx)
+                        : const Color(0xFF14121C).withAlpha(40),
+                    width: 0.5,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    _StatChip(value: '${all.length}', label: 'Items', color: acc),
+                    _StatChip(value: '$done', label: 'Done', color: acc2),
+                    _StatChip(value: '—', label: 'Streak', color: acc3),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-            // ── Links ─────────────────────────────────────
-            Divider(
-              height: 1,
-              color: cs.outlineVariant.withAlpha(80),
+class _StatChip extends StatelessWidget {
+  const _StatChip({required this.value, required this.label, required this.color});
+
+  final String value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.inter(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: color,
+              letterSpacing: -0.02,
             ),
-            ListTile(
-              leading: const Icon(Icons.code_rounded),
-              title: const Text('Source code'),
-              subtitle: const Text('View, star, or contribute on GitHub'),
-              trailing: Icon(
-                Icons.open_in_new_rounded,
-                size: 16,
-                color: cs.onSurfaceVariant,
-              ),
-              onTap: () => _launch(context, 'https://github.com/ramakhilesh22/reki'),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label.toUpperCase(),
+            style: GoogleFonts.inter(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: P.inkDim(context),
+              letterSpacing: 0.04,
             ),
-            Divider(
-              height: 1,
-              indent: 56,
-              endIndent: 16,
-              color: cs.outlineVariant.withAlpha(80),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Guest card ────────────────────────────────────────────────
+
+class _GuestCard extends ConsumerWidget {
+  const _GuestCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ink    = P.ink(context);
+    final inkDim = P.inkDim(context);
+    final acc    = P.accent(context);
+
+    return GlassCard(
+      radius: 22,
+      child: Padding(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.storage_rounded, color: acc, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Local storage',
+                  style: GoogleFonts.inter(
+                    fontSize: 15, fontWeight: FontWeight.w700, color: ink, letterSpacing: -0.01,
+                  ),
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.bug_report_outlined),
-              title: const Text('Report a bug'),
-              subtitle: const Text('Open an issue on GitHub'),
-              trailing: Icon(
-                Icons.open_in_new_rounded,
-                size: 16,
-                color: cs.onSurfaceVariant,
-              ),
-              onTap: () => _launch(context, 'https://github.com/ramakhilesh22/reki/issues'),
+            const SizedBox(height: 8),
+            Text(
+              'Your data is stored locally. Sign in to back it up and sync across devices.',
+              style: GoogleFonts.inter(fontSize: 13, color: inkDim, height: 1.5),
             ),
-            Divider(
-              height: 1,
-              indent: 56,
-              endIndent: 16,
-              color: cs.outlineVariant.withAlpha(80),
-            ),
-            ListTile(
-              leading: const Icon(Icons.gavel_outlined),
-              title: const Text('Open-source licenses'),
-              onTap: () => showLicensePage(
-                context: context,
-                applicationName: 'reki',
-              ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => context.push(AppRoutes.login),
+                    child: GlassCard(
+                      radius: 100,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          'Sign In',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 13, fontWeight: FontWeight.w600, color: ink,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => context.push(AppRoutes.register),
+                    child: GlassCard(
+                      radius: 100,
+                      tint: acc,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(
+                          'Sign Up',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.inter(
+                            fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -879,25 +642,299 @@ class _AboutCard extends ConsumerWidget {
   }
 }
 
-// ── Coming soon badge ──────────────────────────────────────────
+// ── Settings section ──────────────────────────────────────────
 
-class _ComingSoonBadge extends StatelessWidget {
-  const _ComingSoonBadge();
+class _PSection extends StatelessWidget {
+  const _PSection({required this.label, required this.children});
+
+  final String label;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(6, 0, 0, 8),
+              child: Text(
+                label.toUpperCase(),
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: P.inkDimmer(context),
+                  letterSpacing: 0.06 * 10,
+                ),
+              ),
+            ),
+            GlassCard(
+              radius: 20,
+              child: Column(children: children),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Settings link row ─────────────────────────────────────────
+
+class _PLink extends StatelessWidget {
+  const _PLink({
+    required this.label,
+    this.hint,
+    this.trailing,
+    this.first = true,
+    this.onTap,
+  });
+
+  final String label;
+  final String? hint;
+  final Widget? trailing;
+  final bool first;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink    = P.ink(context);
+    final inkDim = P.inkDim(context);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          border: first
+              ? null
+              : Border(top: BorderSide(color: P.borderSoft(context), width: 0.5)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: ink,
+                      letterSpacing: -0.01,
+                    ),
+                  ),
+                  if (hint != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      hint!,
+                      style: GoogleFonts.inter(fontSize: 11, color: inkDim),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            trailing ??
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 16,
+                  color: onTap == null ? P.inkDimmer(context) : inkDim,
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Segmented mode picker ─────────────────────────────────────
+
+class _SegmentedMode extends ConsumerWidget {
+  final ThemeMode current;
+  const _SegmentedMode({required this.current});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ink    = P.ink(context);
+    final inkDim = P.inkDim(context);
+
+    final dark = P.isDark(context);
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: dark
+            ? Colors.black.withAlpha(64)
+            : const Color(0xFF14121C).withAlpha(18),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(
+          color: dark
+              ? P.borderSoft(context)
+              : const Color(0xFF14121C).withAlpha(40),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          for (final (mode, label) in [
+            (ThemeMode.light, 'Light'),
+            (ThemeMode.system, 'Auto'),
+            (ThemeMode.dark, 'Dark'),
+          ])
+            Expanded(
+              child: GestureDetector(
+                onTap: () => ref.read(appThemeModeProvider.notifier).set(mode),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  decoration: BoxDecoration(
+                    color: current == mode
+                        ? (dark ? Colors.white.withAlpha(41) : Colors.white)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(
+                      color: current == mode
+                          ? (dark
+                              ? Colors.white.withAlpha(51)
+                              : const Color(0xFF14121C).withAlpha(20))
+                          : Colors.transparent,
+                      width: 0.5,
+                    ),
+                    boxShadow: (current == mode && !dark)
+                        ? [
+                            BoxShadow(
+                              color: const Color(0xFF14121C).withAlpha(18),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Text(
+                    label,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: current == mode ? ink : inkDim,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Color swatch row ──────────────────────────────────────────
+
+class _ColorSwatchRow extends ConsumerWidget {
+  final AppColorTheme current;
+  const _ColorSwatchRow({required this.current});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showDynamic = !kIsWeb && Platform.isAndroid;
+    final themes = AppColorTheme.values
+        .where((t) => t != AppColorTheme.dynamic || showDynamic)
+        .toList();
+    final ink    = P.ink(context);
+    final inkDim = P.inkDim(context);
+
+    return SizedBox(
+      height: 82,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: themes.length,
+        itemBuilder: (ctx, i) {
+          final theme      = themes[i];
+          final selected   = theme == current;
+          final seedColor  = theme.seedColor;
+
+          return GestureDetector(
+            onTap: () => ref.read(appColorThemeProvider.notifier).set(theme),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: selected ? 56 : 52,
+                    height: selected ? 56 : 52,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: seedColor,
+                      gradient: seedColor == null
+                          ? const LinearGradient(
+                              colors: [
+                                Color(0xFF6750A4),
+                                Color(0xFF1A6B8A),
+                                Color(0xFF2D6A4F),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                      border: selected
+                          ? Border.all(color: ink, width: 2.5)
+                          : null,
+                    ),
+                    child: selected
+                        ? const Icon(Icons.check, color: Colors.white, size: 20)
+                        : null,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    theme.label,
+                    style: GoogleFonts.inter(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: selected ? ink : inkDim,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ── Coming soon badge ─────────────────────────────────────────
+
+class _ComingSoon extends StatelessWidget {
+  const _ComingSoon();
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = P.isDark(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: cs.secondaryContainer,
+        color: dark
+            ? P.glass(context)
+            : const Color(0xFF14121C).withAlpha(18),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: dark
+              ? P.borderSoft(context)
+              : const Color(0xFF14121C).withAlpha(40),
+          width: 0.5,
+        ),
       ),
       child: Text(
         'Coming soon',
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: cs.onSecondaryContainer,
-            ),
+        style: GoogleFonts.inter(
+          fontSize: 10,
+          fontWeight: FontWeight.w500,
+          color: P.inkDim(context),
+        ),
       ),
     );
   }

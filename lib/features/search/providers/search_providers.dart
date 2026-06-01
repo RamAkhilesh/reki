@@ -54,14 +54,14 @@ final pendingSearchQueryProvider = StateProvider<String?>((ref) => null);
 
 // ── Discovery feed ─────────────────────────────────────────────
 
-final trendingThisWeekProvider =
+final nowPlayingMoviesProvider =
     FutureProvider.autoDispose<List<MediaItem>>((ref) {
-  return ref.read(tmdbServiceProvider).fetchTrending(timeWindow: 'week');
+  return ref.read(tmdbServiceProvider).fetchNowPlayingMovies();
 });
 
-final popularRightNowProvider =
+final trendingTvShowsProvider =
     FutureProvider.autoDispose<List<MediaItem>>((ref) {
-  return ref.read(tmdbServiceProvider).fetchTrending(timeWindow: 'day');
+  return ref.read(tmdbServiceProvider).fetchTrendingTv();
 });
 
 final trendingAnimeProvider =
