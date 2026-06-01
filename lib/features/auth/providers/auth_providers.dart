@@ -120,6 +120,17 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     state = const AsyncData(AuthStateUnauthenticated());
   }
 
+  Future<void> signInWithGoogle() async {
+    try {
+      await _repo.signInWithGoogle();
+      // Auth state updates via the stream listener when OAuth completes
+    } on sb.AuthException catch (e) {
+      state = AsyncData(AuthStateError(e.message));
+    } catch (e) {
+      state = AsyncData(AuthStateError('Google sign-in failed'));
+    }
+  }
+
   Future<void> resetPassword(String email) async {
     try {
       await _repo.sendPasswordResetEmail(email);

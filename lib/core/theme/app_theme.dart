@@ -29,7 +29,7 @@ class AppTheme {
 
   static ThemeData _build(ColorScheme scheme) {
     final base = ThemeData(useMaterial3: true, colorScheme: scheme);
-    final textTheme = GoogleFonts.plusJakartaSansTextTheme(base.textTheme);
+    final textTheme = GoogleFonts.interTextTheme(base.textTheme);
 
     return base.copyWith(
       textTheme: textTheme,
@@ -45,7 +45,7 @@ class AppTheme {
         systemOverlayStyle: scheme.brightness == Brightness.dark
             ? SystemUiOverlayStyle.light
             : SystemUiOverlayStyle.dark,
-        titleTextStyle: GoogleFonts.plusJakartaSans(
+        titleTextStyle: GoogleFonts.inter(
           fontSize: 16,
           fontWeight: FontWeight.w700,
           color: scheme.onSurface,
@@ -90,7 +90,7 @@ class AppTheme {
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        hintStyle: GoogleFonts.plusJakartaSans(
+        hintStyle: GoogleFonts.inter(
           color: scheme.onSurfaceVariant.withAlpha(160),
           fontSize: 14,
         ),
@@ -104,7 +104,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           elevation: 0,
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -118,7 +118,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -128,7 +128,7 @@ class AppTheme {
       // ── Text button ──────────────────────────────────────────
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -145,7 +145,7 @@ class AppTheme {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final isSelected = states.contains(WidgetState.selected);
-          return GoogleFonts.plusJakartaSans(
+          return GoogleFonts.inter(
             fontSize: 10,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
             color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
@@ -174,12 +174,12 @@ class AppTheme {
       listTileTheme: ListTileThemeData(
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-        titleTextStyle: GoogleFonts.plusJakartaSans(
+        titleTextStyle: GoogleFonts.inter(
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: scheme.onSurface,
         ),
-        subtitleTextStyle: GoogleFonts.plusJakartaSans(
+        subtitleTextStyle: GoogleFonts.inter(
           fontSize: 12,
           color: scheme.onSurfaceVariant,
         ),
@@ -191,7 +191,7 @@ class AppTheme {
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: scheme.inverseSurface,
-        contentTextStyle: GoogleFonts.plusJakartaSans(
+        contentTextStyle: GoogleFonts.inter(
           color: scheme.onInverseSurface,
           fontSize: 14,
         ),
@@ -215,7 +215,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
-        labelStyle: GoogleFonts.plusJakartaSans(
+        labelStyle: GoogleFonts.inter(
           fontSize: 13,
           fontWeight: FontWeight.w500,
           color: scheme.onSurface,
@@ -230,7 +230,7 @@ class AppTheme {
       // ── Segmented button ─────────────────────────────────────
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: SegmentedButton.styleFrom(
-          textStyle: GoogleFonts.plusJakartaSans(
+          textStyle: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
@@ -257,12 +257,12 @@ class AppTheme {
         ),
         surfaceTintColor: Colors.transparent,
         backgroundColor: scheme.surface,
-        titleTextStyle: GoogleFonts.plusJakartaSans(
+        titleTextStyle: GoogleFonts.inter(
           fontSize: 18,
           fontWeight: FontWeight.w700,
           color: scheme.onSurface,
         ),
-        contentTextStyle: GoogleFonts.plusJakartaSans(
+        contentTextStyle: GoogleFonts.inter(
           fontSize: 14,
           color: scheme.onSurfaceVariant,
         ),

@@ -40,6 +40,39 @@ class TmdbService {
         .toList();
   }
 
+  /// Fetches movies currently playing in theatres.
+  Future<List<MediaItem>> fetchNowPlayingMovies() async {
+    if (TmdbConfig.readAccessToken.isEmpty) return [];
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/movie/now_playing',
+      queryParameters: {'include_adult': false},
+    );
+    final results = response.data?['results'] as List<dynamic>? ?? [];
+    return results
+        .whereType<Map<String, dynamic>>()
+        .where((r) => (r['poster_path'] as String?) != null)
+        .map((r) => MediaItem.fromTmdbJson({...r, 'media_type': 'movie'}))
+        .take(10)
+        .toList();
+  }
+
+  /// Fetches trending TV shows for the week.
+  Future<List<MediaItem>> fetchTrendingTv() async {
+    if (TmdbConfig.readAccessToken.isEmpty) return [];
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/trending/tv/week',
+      queryParameters: {'include_adult': false},
+    );
+    final results = response.data?['results'] as List<dynamic>? ?? [];
+    return results
+        .whereType<Map<String, dynamic>>()
+        .where((r) => !_isAnime(r))
+        .where((r) => (r['poster_path'] as String?) != null)
+        .map((r) => MediaItem.fromTmdbJson({...r, 'media_type': 'tv'}))
+        .take(10)
+        .toList();
+  }
+
   /// Fetches movies similar to [id].
   Future<List<MediaItem>> fetchSimilarMovies(String id) async {
     final response = await _dio.get<Map<String, dynamic>>('/movie/$id/similar');

@@ -77,7 +77,7 @@ class MediaItem {
       posterUrl: posterUrl,
       genres: genres,
       episodeCount: episodes ?? chapters,
-      overview: json['description'] as String?,
+      overview: _stripHtml(json['description'] as String?),
     );
   }
 
@@ -114,7 +114,7 @@ class MediaItem {
       posterUrl: posterUrl,
       genres: categories,
       runtimeMinutes: pageCount,
-      overview: volumeInfo['description'] as String?,
+      overview: _stripHtml(volumeInfo['description'] as String?),
     );
   }
 
@@ -189,6 +189,21 @@ class MediaItem {
       'game' => 'Game',
       _ => mediaType,
     };
+  }
+
+  static String? _stripHtml(String? html) {
+    if (html == null) return null;
+    return html
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
   }
 
   // Maps AniList type + format to our internal mediaType string.

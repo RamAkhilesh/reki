@@ -2,6 +2,7 @@
 // lib/features/auth/data/auth_repository.dart
 // ─────────────────────────────────────────────────────────────
 
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthRepository {
@@ -44,5 +45,14 @@ class AuthRepository {
 
   Future<void> sendPasswordResetEmail(String email) async {
     await _client.auth.resetPasswordForEmail(email);
+  }
+
+  // ── Google OAuth ───────────────────────────────────────────
+
+  Future<bool> signInWithGoogle() async {
+    return _client.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: kIsWeb ? null : 'com.reki.app://login-callback/',
+    );
   }
 }

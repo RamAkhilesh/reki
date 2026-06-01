@@ -2,7 +2,7 @@ name: reki
 description: "reki — personal media tracking for movies, TV, anime, manga, books and games."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.11.4
@@ -26,6 +26,7 @@ dependencies:
   url_launcher: ^6.3.0
   path_provider: ^2.1.0
   google_fonts: ^6.2.1
+  palette_generator: ^0.3.3
 
 dev_dependencies:
   flutter_test:
@@ -43,7 +44,7 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icon/icon.png"
+  image_path: "assets/icon/reki-app-icon.png"
   min_sdk_android: 21
   remove_alpha_ios: true
   web:
@@ -58,9 +59,9 @@ flutter_launcher_icons:
 flutter_native_splash:
   color: "#14131D"
   color_dark: "#14131D"
-  image: "assets/icon/icon.png"
+  image: "assets/icon/reki-wordmark.png"
   android_12:
-    image: "assets/icon/icon.png"
+    image: "assets/icon/reki-app-icon.png"
     color: "#14131D"
     color_dark: "#14131D"
   fullscreen: false

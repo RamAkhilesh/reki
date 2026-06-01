@@ -300,7 +300,7 @@ class MediaDetails {
       source: 'anilist',
       mediaType: mediaType,
       title: title,
-      overview: _nonEmpty(json['description'] as String?),
+      overview: _stripHtml(json['description'] as String?),
       posterUrl: posterUrl,
       backdropUrl: json['bannerImage'] as String?,
       releaseDate: releaseDate,
@@ -352,7 +352,7 @@ class MediaDetails {
       source: 'google_books',
       mediaType: 'book',
       title: title,
-      overview: _nonEmpty(vol['description'] as String?),
+      overview: _stripHtml(vol['description'] as String?),
       posterUrl: posterUrl,
       releaseDate: vol['publishedDate'] as String?,
       pageCount: vol['pageCount'] as int?,
@@ -478,6 +478,22 @@ class MediaDetails {
 
   static String? _nonEmpty(String? s) =>
       (s == null || s.trim().isEmpty) ? null : s;
+
+  static String? _stripHtml(String? html) {
+    if (html == null) return null;
+    final stripped = html
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#39;', "'")
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+        .trim();
+    return stripped.isEmpty ? null : stripped;
+  }
 
   static String? _tmdbImageUrl(String? path, String size) {
     if (path == null) return null;

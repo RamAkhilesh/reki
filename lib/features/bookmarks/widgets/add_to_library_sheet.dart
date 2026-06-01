@@ -6,9 +6,13 @@
 // existing bookmark via long-press.
 // ─────────────────────────────────────────────────────────────
 
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/theme/prism_tokens.dart';
 import '../../../data/models/bookmark.dart';
 import '../../../data/models/media_item.dart';
 import '../providers/bookmark_providers.dart';
@@ -243,29 +247,53 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-
+    final isDark = P.isDark(context);
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.viewInsetsOf(context).bottom,
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: cs.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark
+                  ? const Color(0xFF10101A).withAlpha(235)
+                  : const Color(0xFFFCFBF7).withAlpha(245),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+              border: Border(
+                top: BorderSide(color: P.border(context), width: 0.5),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark
+                      ? Colors.white.withAlpha(41)
+                      : Colors.white.withAlpha(217),
+                  offset: const Offset(0, 0.5),
+                ),
+                BoxShadow(
+                  color: Colors.black.withAlpha(isDark ? 153 : 26),
+                  blurRadius: 80,
+                  offset: const Offset(0, -30),
+                ),
+              ],
+            ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ── Drag handle ──────────────────────────────
             Padding(
-              padding: const EdgeInsets.only(top: 12, bottom: 8),
+              padding: const EdgeInsets.only(top: 10, bottom: 4),
               child: Center(
                 child: Container(
-                  width: 36,
+                  width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: cs.onSurfaceVariant.withAlpha(100),
+                    color: P.isDark(context)
+                        ? Colors.white.withAlpha(56)
+                        : Colors.black.withAlpha(46),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -274,19 +302,21 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
 
             // ── Header ──────────────────────────────────
             _buildHeader(cs),
-            const Divider(height: 1),
+            Divider(height: 1, color: P.border(context)),
 
             // ── Tracking row (Status | Progress | Score) ─
             _buildTrackingRow(),
-            const Divider(height: 1),
+            Divider(height: 1, color: P.border(context)),
 
             // ── Dates row ────────────────────────────────
             _buildDatesRow(),
-            const Divider(height: 1),
+            Divider(height: 1, color: P.border(context)),
 
             // ── Action buttons ───────────────────────────
             _buildActions(cs),
           ],
+        ),
+          ),
         ),
       ),
     );
@@ -295,13 +325,16 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
   // ── Header ───────────────────────────────────────────────────
 
   Widget _buildHeader(ColorScheme cs) {
-    final tt = Theme.of(context).textTheme;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 2, 16, 8),
       child: Text(
         _mediaItem.title,
-        style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+        style: GoogleFonts.inter(
+          fontSize: 17,
+          fontWeight: FontWeight.w700,
+          color: P.ink(context),
+          letterSpacing: -0.02,
+        ),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
@@ -322,7 +355,7 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
               onTap: _openStatusSheet,
             ),
           ),
-          const VerticalDivider(width: 1),
+          VerticalDivider(width: 1, color: P.border(context)),
           Expanded(
             child: _hasProgress
                 ? _ProgressCell(
@@ -334,7 +367,7 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
                   )
                 : const SizedBox.shrink(),
           ),
-          const VerticalDivider(width: 1),
+          VerticalDivider(width: 1, color: P.border(context)),
           Expanded(
             child: _TrackingCell(
               value: _score != null ? '$_score / 10' : '–',
@@ -361,7 +394,7 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
               onTap: () => _pickDate(isStart: true),
             ),
           ),
-          const VerticalDivider(width: 1),
+          VerticalDivider(width: 1, color: P.border(context)),
           Expanded(
             child: _TrackingCell(
               value: _formatDate(_finishDate),
@@ -377,56 +410,135 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
   // ── Action buttons ────────────────────────────────────────────
 
   Widget _buildActions(ColorScheme cs) {
+    final acc    = P.accent(context);
+    final acc3   = P.accent3(context);
+    final ink    = P.ink(context);
+
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        14,
-        8,
-        14,
-        12 + MediaQuery.paddingOf(context).bottom,
+        16, 10, 16,
+        14 + MediaQuery.paddingOf(context).bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
+              // Cancel — glass
               Expanded(
-                child: OutlinedButton(
-                  onPressed: _saving ? null : () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                child: GestureDetector(
+                  onTap: _saving ? null : () => Navigator.of(context).pop(),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(100),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: P.glass(context),
+                          borderRadius: BorderRadius.circular(100),
+                          border: Border.all(color: P.border(context), width: 0.5),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Cancel',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: ink,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
+              // Save — gradient fill
               Expanded(
                 flex: 2,
-                child: FilledButton(
-                  onPressed: _saving ? null : _save,
-                  child: _saving
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          _isEditing ? 'Save changes' : 'Add to library',
+                child: GestureDetector(
+                  onTap: _saving ? null : _save,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [acc, acc3],
+                      ),
+                      borderRadius: BorderRadius.circular(100),
+                      boxShadow: [
+                        BoxShadow(
+                          color: acc.withAlpha(100),
+                          blurRadius: 24,
+                          offset: const Offset(0, 8),
                         ),
+                        BoxShadow(
+                          color: Colors.white.withAlpha(77),
+                          offset: const Offset(0, 0.5),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: _saving
+                          ? const SizedBox(
+                              width: 18, height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              _isEditing ? 'Save changes' : 'Add to library',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: -0.015,
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
           if (_isEditing && widget.onDelete != null) ...[
-            const SizedBox(height: 6),
-            SizedBox(
-              width: double.infinity,
-              child: TextButton.icon(
-                onPressed: _saving ? null : _delete,
-                icon: Icon(
-                  Icons.delete_outline_rounded,
-                  size: 18,
-                  color: cs.error,
-                ),
-                label: Text(
-                  'Remove from Library',
-                  style: TextStyle(color: cs.error),
+            const SizedBox(height: 8),
+            GestureDetector(
+              onTap: _saving ? null : _delete,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(100),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: P.statusDropped.withAlpha(20),
+                      borderRadius: BorderRadius.circular(100),
+                      border: Border.all(
+                        color: P.statusDropped.withAlpha(64), width: 0.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.delete_outline_rounded,
+                            size: 16, color: P.statusDropped),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Remove from Library',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: P.statusDropped,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -463,10 +575,7 @@ class _TrackingCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
@@ -476,9 +585,10 @@ class _TrackingCell extends StatelessWidget {
           children: [
             Text(
               value,
-              style: tt.titleMedium?.copyWith(
-                color: cs.onSurface,
+              style: GoogleFonts.inter(
+                fontSize: 15,
                 fontWeight: FontWeight.w600,
+                color: P.ink(context),
               ),
               textAlign: TextAlign.center,
               maxLines: 2,
@@ -487,7 +597,10 @@ class _TrackingCell extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: P.inkDimmer(context),
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -516,9 +629,6 @@ class _ProgressCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
       child: Column(
@@ -535,9 +645,10 @@ class _ProgressCell extends StatelessWidget {
               ),
               Text(
                 '$count',
-                style: tt.titleMedium?.copyWith(
-                  color: cs.onSurface,
+                style: GoogleFonts.inter(
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
+                  color: P.ink(context),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -551,7 +662,10 @@ class _ProgressCell extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             total != null ? '$label ($count/$total)' : label,
-            style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              color: P.inkDimmer(context),
+            ),
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
           ),
@@ -576,25 +690,25 @@ class _StepButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final enabled = onTap != null;
 
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
       child: Container(
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: filled && enabled ? cs.primary : cs.surfaceContainerHighest,
+          color: filled && enabled
+              ? P.accent(context)
+              : P.glass(context),
           shape: BoxShape.circle,
         ),
         child: Icon(
           icon,
           size: 16,
           color: filled && enabled
-              ? cs.onPrimary
-              : cs.onSurfaceVariant.withAlpha(enabled ? 255 : 80),
+              ? Colors.white
+              : P.inkDim(context).withAlpha(enabled ? 255 : 80),
         ),
       ),
     );
@@ -616,50 +730,65 @@ class _StatusSubSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 12, bottom: 4),
-            child: Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: cs.onSurfaceVariant.withAlpha(100),
-                  borderRadius: BorderRadius.circular(2),
+    final isDark = P.isDark(context);
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? const Color(0xFF10101A).withAlpha(235)
+                : const Color(0xFFFCFBF7).withAlpha(245),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(top: BorderSide(color: P.border(context), width: 0.5)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 4),
+                child: Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withAlpha(56)
+                          : Colors.black.withAlpha(46),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Status',
-                style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Status',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: P.inkDimmer(context),
+                      letterSpacing: 0.06 * 11,
+                    ),
+                  ),
+                ),
               ),
-            ),
+              for (final s in BookmarkStatus.all)
+                ListTile(
+                  title: Text(statusLabel(s), style: GoogleFonts.inter(
+                    fontSize: 15, fontWeight: FontWeight.w500, color: P.ink(context),
+                  )),
+                  trailing: current == s
+                      ? Icon(Icons.check_rounded, color: P.accent(context))
+                      : null,
+                  onTap: () => Navigator.of(context).pop(s),
+                ),
+              SizedBox(height: MediaQuery.paddingOf(context).bottom + 8),
+            ],
           ),
-          for (final s in BookmarkStatus.all)
-            ListTile(
-              title: Text(statusLabel(s)),
-              trailing: current == s
-                  ? Icon(Icons.check_rounded, color: cs.primary)
-                  : null,
-              onTap: () => Navigator.of(context).pop(s),
-            ),
-          SizedBox(height: MediaQuery.paddingOf(context).bottom + 8),
-        ],
+        ),
       ),
     );
   }
@@ -698,114 +827,160 @@ class _ScoreSubSheetState extends State<_ScoreSubSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
+    final isDark = P.isDark(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle
-          Center(
-            child: Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 14),
-              decoration: BoxDecoration(
-                color: cs.onSurfaceVariant.withAlpha(100),
-                borderRadius: BorderRadius.circular(2),
-              ),
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? const Color(0xFF10101A).withAlpha(235)
+                : const Color(0xFFFCFBF7).withAlpha(245),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border(
+              top: BorderSide(color: P.border(context), width: 0.5),
             ),
           ),
-
-          // Title row + live score display
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Score',
-                style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-              ),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 160),
-                child: Text(
-                  _selected == 0 ? '–' : '$_selected / 10',
-                  key: ValueKey(_selected),
-                  style: tt.titleMedium?.copyWith(
-                    color: cs.primary,
-                    fontWeight: FontWeight.w700,
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withAlpha(56)
+                        : Colors.black.withAlpha(46),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
+
+              // Title row + live score display
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Score',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: P.ink(context),
+                      letterSpacing: -0.015,
+                    ),
+                  ),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 160),
+                    child: Text(
+                      _selected == 0 ? '–' : '$_selected / 10',
+                      key: ValueKey(_selected),
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: P.accent(context),
+                        letterSpacing: -0.015,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Scroll wheel
+              SizedBox(
+                height: _itemExtent * 5,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Selection highlight bar
+                    Container(
+                      height: _itemExtent,
+                      decoration: BoxDecoration(
+                        color: P.accent(context).withAlpha(isDark ? 48 : 68),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    ListWheelScrollView.useDelegate(
+                      controller: _controller,
+                      itemExtent: _itemExtent,
+                      onSelectedItemChanged: (i) =>
+                          setState(() => _selected = i),
+                      physics: const FixedExtentScrollPhysics(),
+                      perspective: 0.003,
+                      diameterRatio: 2.8,
+                      childDelegate: ListWheelChildBuilderDelegate(
+                        childCount: 11, // 0 = unrated, 1–10
+                        builder: (context, i) {
+                          final isSelected = i == _selected;
+                          return Center(
+                            child: Text(
+                              i == 0 ? '–' : '$i',
+                              style: GoogleFonts.inter(
+                                fontSize: 22,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w400,
+                                color: isSelected
+                                    ? P.ink(context)
+                                    : P.inkDimmer(context),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Confirm button
+              GestureDetector(
+                onTap: () => Navigator.of(context).pop(_selected),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [P.accent(context), P.accent3(context)],
+                    ),
+                    borderRadius: BorderRadius.circular(100),
+                    boxShadow: [
+                      BoxShadow(
+                        color: P.accent(context).withAlpha(100),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Confirm',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: -0.015,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: MediaQuery.paddingOf(context).bottom),
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          // Scroll wheel
-          SizedBox(
-            height: _itemExtent * 5,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Selection highlight bar
-                Container(
-                  height: _itemExtent,
-                  decoration: BoxDecoration(
-                    color: cs.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                ListWheelScrollView.useDelegate(
-                  controller: _controller,
-                  itemExtent: _itemExtent,
-                  onSelectedItemChanged: (i) =>
-                      setState(() => _selected = i),
-                  physics: const FixedExtentScrollPhysics(),
-                  perspective: 0.003,
-                  diameterRatio: 2.8,
-                  childDelegate: ListWheelChildBuilderDelegate(
-                    childCount: 11, // 0 = unrated, 1–10
-                    builder: (context, i) {
-                      final isSelected = i == _selected;
-                      return Center(
-                        child: Text(
-                          i == 0 ? '–' : '$i',
-                          style: tt.titleLarge?.copyWith(
-                            color: isSelected
-                                ? cs.onPrimaryContainer
-                                : cs.onSurfaceVariant,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.w400,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          // Confirm button
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).pop(_selected),
-              child: const Text('Confirm'),
-            ),
-          ),
-
-          SizedBox(height: MediaQuery.paddingOf(context).bottom),
-        ],
+        ),
       ),
     );
   }
