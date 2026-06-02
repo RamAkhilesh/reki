@@ -2,7 +2,7 @@ name: reki
 description: "reki — personal media tracking for movies, TV, anime, manga, books and games."
 publish_to: 'none'
 
-version: 1.0.2+3
+version: 1.0.3+4
 
 environment:
   sdk: ^3.11.4

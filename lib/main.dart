@@ -17,11 +17,12 @@ import 'features/settings/providers/settings_providers.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  assert(
-    SupabaseConfig.url.isNotEmpty && SupabaseConfig.anonKey.isNotEmpty,
-    'Missing Supabase credentials.\n'
-    'Run with: flutter run --dart-define-from-file=secrets.json',
-  );
+  if (SupabaseConfig.url.isEmpty || SupabaseConfig.anonKey.isEmpty) {
+    throw StateError(
+      'Missing Supabase credentials. '
+      'Build with: flutter build apk --dart-define-from-file=secrets.json',
+    );
+  }
 
   await Supabase.initialize(
     url: SupabaseConfig.url,
