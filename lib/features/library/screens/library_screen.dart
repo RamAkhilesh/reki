@@ -90,7 +90,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final ink       = P.ink(context);
     final inkDim    = P.inkDim(context);
 
-    return Stack(
+    return PopScope(
+      canPop: !_searchActive,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _clearSearch();
+      },
+      child: Stack(
       children: [
         // ── Ambient backdrop ──────────────────────────────
         const Positioned.fill(child: PrismBackdrop(variant: 'warm')),
@@ -137,6 +142,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           ),
         ),
       ],
+      ),
     );
   }
 
@@ -286,8 +292,6 @@ class _LibraryTabViewState extends ConsumerState<_LibraryTabView>
   }
 
   void _onTabChanged() {
-    // Always rebuild so pills update immediately during swipe/animation.
-    setState(() {});
     if (_tabController.indexIsChanging) return;
     final currentType = widget.tabs[_tabController.index];
     ref.read(lastLibraryTabProvider.notifier).save(currentType);
@@ -344,38 +348,42 @@ class _LibraryTabViewState extends ConsumerState<_LibraryTabView>
             : allBookmarks.where((b) => b.mediaItem.mediaType == type).length,
     };
 
-    final selectedIndex = _tabController.index;
-
     return Column(
       children: [
         // ── Tab labels ────────────────────────────────────
-        SizedBox(
-          height: 42,
-          child: ListView.builder(
-            controller: _pillScrollController,
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(18, 0, 18, 0),
-            itemCount: widget.tabs.length,
-            itemBuilder: (ctx, i) {
-              final type     = widget.tabs[i];
-              final label    = _typeLabel(type);
-              final selected = i == selectedIndex;
-              final count    = tabCounts[type] ?? 0;
+        ListenableBuilder(
+          listenable: _tabController,
+          builder: (ctx, _) {
+            final selectedIndex = _tabController.index;
+            return SizedBox(
+              height: 42,
+              child: ListView.builder(
+                controller: _pillScrollController,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(18, 0, 18, 0),
+                itemCount: widget.tabs.length,
+                itemBuilder: (ctx, i) {
+                  final type     = widget.tabs[i];
+                  final label    = _typeLabel(type);
+                  final selected = i == selectedIndex;
+                  final count    = tabCounts[type] ?? 0;
 
-              return SizedBox(
-                key: _pillKeys[i],
-                child: _TabLabel(
-                  label: label,
-                  count: count,
-                  selected: selected,
-                  onTap: () => _tabController.animateTo(
-                    i,
-                    duration: const Duration(milliseconds: 200),
-                  ),
-                ),
-              );
-            },
-          ),
+                  return SizedBox(
+                    key: _pillKeys[i],
+                    child: _TabLabel(
+                      label: label,
+                      count: count,
+                      selected: selected,
+                      onTap: () => _tabController.animateTo(
+                        i,
+                        duration: const Duration(milliseconds: 200),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
         ),
 
         // ── Sort & filter row ─────────────────────────────

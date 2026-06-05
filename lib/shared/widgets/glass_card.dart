@@ -3,8 +3,6 @@
 // Frosted-glass surface and ambient backdrop widgets.
 // ─────────────────────────────────────────────────────────────
 
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../core/theme/prism_tokens.dart';
@@ -32,7 +30,10 @@ class GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = P.isDark(context);
-    final glass = P.glass(context);
+    // More opaque than P.glass since there is no blur to add depth.
+    final glass = dark
+        ? Colors.white.withAlpha(38)   // 0.15
+        : Colors.white.withAlpha(210); // 0.82
     final bdr   = P.border(context);
 
     final decoration = style ?? BoxDecoration(
@@ -91,10 +92,7 @@ class GlassCard extends StatelessWidget {
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-        child: card,
-      ),
+      child: card,
     );
   }
 }
@@ -272,21 +270,17 @@ class PrismPill extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(100),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: small ? 10 : 14,
-              vertical: small ? 5 : 8,
-            ),
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: bdr, width: 0.5),
-            ),
-            child: Row(
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: small ? 10 : 14,
+          vertical: small ? 5 : 8,
+        ),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(100),
+          border: Border.all(color: bdr, width: 0.5),
+        ),
+        child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (dotColor != null) ...[
@@ -313,8 +307,6 @@ class PrismPill extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
     );
   }
 }

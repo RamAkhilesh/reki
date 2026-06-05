@@ -44,17 +44,17 @@ class PosterGridCard extends StatelessWidget {
                   )
                 : _GridFallback(cs: cs),
 
-            // Gradient overlay
+            // Gradient overlay — always dark so white text is readable on any poster
             Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    stops: const [0.50, 1.0],
+                    stops: const [0.45, 1.0],
                     colors: [
                       Colors.transparent,
-                      cs.surface.withAlpha(235),
+                      Colors.black.withAlpha(220),
                     ],
                   ),
                 ),
@@ -73,7 +73,7 @@ class PosterGridCard extends StatelessWidget {
                     item.title,
                     style: tt.labelMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: cs.onSurface,
+                      color: Colors.white,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,

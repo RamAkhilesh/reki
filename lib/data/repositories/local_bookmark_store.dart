@@ -37,20 +37,50 @@ class LocalBookmarkStore {
   }) async {
     final all = await loadAllForSync();
     final now = DateTime.now();
-    final bookmark = Bookmark(
-      id: 'local_${now.millisecondsSinceEpoch}',
-      userId: 'guest',
-      mediaItem: mediaItem,
-      status: status,
-      rating: rating,
-      notes: notes?.isNotEmpty == true ? notes : null,
-      startDate: startDate,
-      endDate: endDate,
-      progressCount: progressCount,
-      createdAt: now,
-      updatedAt: now,
+
+    // If a soft-deleted entry exists for this media item, restore it in-place
+    // rather than inserting a duplicate.
+    final existingIdx = all.indexWhere(
+      (b) =>
+          b.mediaItem.externalId == mediaItem.externalId &&
+          b.mediaItem.source == mediaItem.source &&
+          b.deletedAt != null,
     );
-    all.insert(0, bookmark);
+
+    final Bookmark bookmark;
+    if (existingIdx != -1) {
+      final old = all[existingIdx];
+      bookmark = Bookmark(
+        id: old.id,
+        userId: old.userId,
+        mediaItem: mediaItem,
+        status: status,
+        rating: rating,
+        notes: notes?.isNotEmpty == true ? notes : null,
+        startDate: startDate,
+        endDate: endDate,
+        progressCount: progressCount,
+        createdAt: old.createdAt,
+        updatedAt: now,
+      );
+      all[existingIdx] = bookmark;
+    } else {
+      bookmark = Bookmark(
+        id: 'local_${now.millisecondsSinceEpoch}',
+        userId: 'guest',
+        mediaItem: mediaItem,
+        status: status,
+        rating: rating,
+        notes: notes?.isNotEmpty == true ? notes : null,
+        startDate: startDate,
+        endDate: endDate,
+        progressCount: progressCount,
+        createdAt: now,
+        updatedAt: now,
+      );
+      all.insert(0, bookmark);
+    }
+
     await _save(all);
     return bookmark;
   }

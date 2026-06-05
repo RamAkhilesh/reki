@@ -3,8 +3,6 @@
 // Prism redesign — glass Discover / search screen.
 // ─────────────────────────────────────────────────────────────
 
-import 'dart:ui';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -105,7 +103,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final ink            = P.ink(context);
     final inkDim         = P.inkDim(context);
 
-    return Stack(
+    return PopScope(
+      canPop: !showResults,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _clearAndCollapse();
+      },
+      child: Stack(
       children: [
         // ── Ambient backdrop ──────────────────────────────
         const Positioned.fill(child: PrismBackdrop(variant: 'cool')),
@@ -266,6 +269,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
         ),
       ],
+      ),
     );
   }
 }
@@ -783,7 +787,7 @@ class _ResultsPanelState extends ConsumerState<_ResultsPanel> {
                 item: item,
                 inLibrary: inLibrary,
                 onAdd: inLibrary ? null : () => showAddBookmarkSheet(ctx, item),
-                onDoubleTap: inLibrary ? null : () => _quickAdd(item),
+                onLongPress: inLibrary ? null : () => _quickAdd(item),
               ).animate().fadeIn(duration: 220.ms, delay: (i * 30).ms);
             },
           ),
@@ -816,68 +820,62 @@ class _PrismTypeChip extends StatelessWidget {
     final acc     = P.accent(context);
 
     final bg  = selected
-        ? (dark ? Colors.white.withAlpha(41) : acc)
+        ? (dark ? acc.withAlpha(50) : acc)
         : P.glass(context);
     final bdr = selected
-        ? (dark ? Colors.white.withAlpha(51) : Colors.transparent)
+        ? (dark ? acc.withAlpha(80) : Colors.transparent)
         : P.borderSoft(context);
 
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: GestureDetector(
         onTap: onTap,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(100),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 160),
-              curve: Curves.easeInOut,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(color: bdr, width: 0.5),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: bdr, width: 0.5),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: selected
+                      ? (dark ? ink : Colors.white)
+                      : inkDim,
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
+              const SizedBox(width: 5),
+              Container(
+                constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? Colors.black.withAlpha(50)
+                      : Colors.white.withAlpha(dark ? 30 : 70),
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Center(
+                  child: Text(
+                    '$count',
                     style: GoogleFonts.inter(
-                      fontSize: 12,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: selected
-                          ? (dark ? ink : Colors.white)
+                          ? (dark ? ink : Colors.white70)
                           : inkDim,
                     ),
                   ),
-                  const SizedBox(width: 5),
-                  Container(
-                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: selected
-                          ? Colors.black.withAlpha(50)
-                          : Colors.white.withAlpha(dark ? 30 : 70),
-                      borderRadius: BorderRadius.circular(100),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '$count',
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: selected
-                              ? (dark ? ink : Colors.white70)
-                              : inkDim,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -892,13 +890,13 @@ class _SearchGridItem extends StatelessWidget {
     required this.item,
     required this.inLibrary,
     this.onAdd,
-    this.onDoubleTap,
+    this.onLongPress,
   });
 
   final MediaItem item;
   final bool inLibrary;
   final VoidCallback? onAdd;
-  final VoidCallback? onDoubleTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -909,7 +907,7 @@ class _SearchGridItem extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => context.push(AppRoutes.mediaDetail, extra: item),
-      onDoubleTap: onDoubleTap,
+      onLongPress: onLongPress,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Stack(

@@ -14,10 +14,12 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/prism_tokens.dart';
+import 'licenses_screen.dart';
 import '../../../data/models/bookmark.dart';
 import '../../../data/models/media_item.dart';
 import '../../../shared/widgets/glass_card.dart';
@@ -194,9 +196,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _PLink(
                 label: 'Open-source licenses',
                 first: false,
-                onTap: () => showLicensePage(
-                  context: context,
-                  applicationName: 'reki',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const LicensesScreen(),
+                  ),
                 ),
               ),
             ]),
@@ -206,13 +209,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(0, 40, 0, 0),
                 child: Center(
-                  child: Text(
-                    'reki · made with care',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: P.inkDimmer(context),
-                      letterSpacing: 0.02,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'reki',
+                        style: GoogleFonts.inter(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          color: P.inkDimmer(context),
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (ref.watch(packageInfoProvider).value case final PackageInfo info)
+                        Text(
+                          'v${info.version}',
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: P.inkDimmer(context).withValues(alpha: 0.5),
+                            letterSpacing: 0.02,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),

@@ -72,8 +72,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final inkDim = P.inkDim(context);
     final inkDimmer = P.inkDimmer(context);
     final acc = P.accent(context);
-    final acc2 = P.accent2(context);
-    final acc3 = P.accent3(context);
 
     return Scaffold(
       backgroundColor: P.bg(context),
@@ -112,20 +110,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           Center(
                             child: Column(
                               children: [
-                                ShaderMask(
-                                  shaderCallback: (r) => LinearGradient(
-                                    colors: [acc, acc2, acc3],
-                                    stops: const [0, 0.5, 1],
-                                  ).createShader(r),
-                                  child: Text(
-                                    'reki',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.04 * 28,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                                Image.asset(
+                                  'assets/icon/reki-app-icon.png',
+                                  width: 72,
+                                  height: 72,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(

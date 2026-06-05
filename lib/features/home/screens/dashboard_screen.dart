@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:palette_generator/palette_generator.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/prism_tokens.dart';
@@ -209,12 +210,12 @@ class DashboardScreen extends ConsumerWidget {
                     crossAxisCount: 2,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-                    mainAxisExtent: 120,
+                    mainAxisExtent: 170,
                   ),
                   delegate: SliverChildBuilderDelegate(
                     (ctx, i) => _CategoryGlassCard(
                       stats: nonEmptyCats[i],
-                      tint: _catTint(nonEmptyCats[i].mediaType, acc, acc2, acc3),
+                      fallbackTint: _catTint(nonEmptyCats[i].mediaType, acc, acc2, acc3),
                       onTap: () => _goToLibrary(ref, type: nonEmptyCats[i].mediaType),
                     ),
                     childCount: nonEmptyCats.length,
@@ -445,25 +446,86 @@ class _PosterCard extends StatelessWidget {
 
 // ── Category glass card ───────────────────────────────────────
 
-class _CategoryGlassCard extends StatelessWidget {
+class _CategoryGlassCard extends StatefulWidget {
   const _CategoryGlassCard({
     required this.stats,
-    required this.tint,
+    required this.fallbackTint,
     required this.onTap,
   });
 
   final CategoryStats stats;
-  final Color tint;
+  final Color fallbackTint;
   final VoidCallback onTap;
 
+  @override
+  State<_CategoryGlassCard> createState() => _CategoryGlassCardState();
+}
+
+class _CategoryGlassCardState extends State<_CategoryGlassCard> {
+  Color? _extractedColor;
+  bool _extracting = false;
+  String? _lastExtractedUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _extractColor();
+  }
+
+  @override
+  void didUpdateWidget(_CategoryGlassCard old) {
+    super.didUpdateWidget(old);
+    final newUrl = widget.stats.recentFour.firstOrNull?.mediaItem.posterUrl;
+    if (newUrl != _lastExtractedUrl) {
+      _extractedColor = null;
+      _extractColor();
+    }
+  }
+
+  Future<void> _extractColor() async {
+    if (_extracting) return;
+    final url = widget.stats.recentFour.firstOrNull?.mediaItem.posterUrl;
+    if (url == null) return;
+    _extracting = true;
+    _lastExtractedUrl = url;
+    try {
+      final palette = await PaletteGenerator.fromImageProvider(
+        CachedNetworkImageProvider(url),
+        size: const Size(80, 120),
+        maximumColorCount: 16,
+      );
+      final color = palette.dominantColor?.color
+          ?? palette.mutedColor?.color
+          ?? palette.vibrantColor?.color;
+      if (color != null && mounted) {
+        setState(() => _extractedColor = color);
+      }
+    } catch (_) {
+      // fall back to fallbackTint silently
+    } finally {
+      _extracting = false;
+    }
+  }
+
+  static (Color, Color) _typeBadge(String type, ColorScheme cs) =>
+      switch (type) {
+        'movie' => (cs.primaryContainer,   cs.onPrimaryContainer),
+        'tv'    => (cs.secondaryContainer, cs.onSecondaryContainer),
+        'anime' => (cs.tertiaryContainer,  cs.onTertiaryContainer),
+        'manga' => (cs.errorContainer,     cs.onErrorContainer),
+        'game'  => (cs.surfaceContainerHighest, cs.onSurfaceVariant),
+        'book'  => (cs.secondaryContainer, cs.onSecondaryContainer),
+        _       => (cs.surfaceContainerHighest, cs.onSurfaceVariant),
+      };
+
   static String _typeLabel(String t) => switch (t) {
-    'movie'  => 'Movies',
-    'tv'     => 'TV Shows',
-    'anime'  => 'Anime',
-    'manga'  => 'Manga',
-    'game'   => 'Games',
-    'book'   => 'Books',
-    _        => t,
+    'movie' => 'Movies',
+    'tv'    => 'TV Shows',
+    'anime' => 'Anime',
+    'manga' => 'Manga',
+    'game'  => 'Games',
+    'book'  => 'Books',
+    _       => t,
   };
 
   static IconData _typeIcon(String t) => switch (t) {
@@ -478,55 +540,110 @@ class _CategoryGlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tint   = _extractedColor ?? widget.fallbackTint;
     final ink    = P.ink(context);
     final inkDim = P.inkDim(context);
-    final dark   = P.isDark(context);
+    final cs     = Theme.of(context).colorScheme;
+    final (iconBg, iconFg) = _typeBadge(widget.stats.mediaType, cs);
+    final coverUrl = widget.stats.recentFour.firstOrNull?.mediaItem.posterUrl;
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: GlassCard(
         radius: 20,
-        tint: tint,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Type icon bubble
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: tint.withAlpha(dark ? 60 : 50),
-                  borderRadius: BorderRadius.circular(10),
+        tint: null,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Accent bar ────────────────────────────────
+            Container(width: 4, color: iconFg.withAlpha(200)),
+
+            // ── Inner column: header + mosaic below ───────
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header row: icon → label → count
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: iconBg,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(_typeIcon(widget.stats.mediaType), color: iconFg, size: 16),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _typeLabel(widget.stats.mediaType),
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: ink,
+                              letterSpacing: -0.01,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${widget.stats.total}',
+                          style: GoogleFonts.inter(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: iconFg,
+                            height: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Mosaic / cover image fills remaining space
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: coverUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: coverUrl,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                                placeholder: (_, _) => ColoredBox(color: tint.withAlpha(30)),
+                                errorWidget: (_, _, _) => ColoredBox(color: tint.withAlpha(30)),
+                              )
+                            : Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.bookmark_add_outlined,
+                                        color: inkDim.withAlpha(120), size: 20),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Nothing yet',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 11,
+                                        color: inkDim.withAlpha(160),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
-                child: Icon(_typeIcon(stats.mediaType), color: tint, size: 16),
               ),
-              const Spacer(),
-              // Count
-              Text(
-                '${stats.total}',
-                style: GoogleFonts.inter(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  color: ink,
-                  letterSpacing: -0.03,
-                  height: 1,
-                ),
-              ),
-              const SizedBox(height: 3),
-              // Label
-              Text(
-                _typeLabel(stats.mediaType),
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: inkDim,
-                  letterSpacing: -0.01,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -614,3 +731,4 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+

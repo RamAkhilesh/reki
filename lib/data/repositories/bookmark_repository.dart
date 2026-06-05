@@ -56,18 +56,22 @@ class BookmarkRepository {
 
     final bookmarkRow = await _client
         .from('bookmarks')
-        .insert({
-          'user_id': _userId,
-          'media_item_id': persistedItem.id,
-          'status': status,
-          'rating': ?rating,
-          'notes': notes?.isNotEmpty == true ? notes : null,
-          'start_date': ?startDate?.toIso8601String().substring(0, 10),
-          'end_date': ?endDate?.toIso8601String().substring(0, 10),
-          'progress_count': ?progressCount,
-          'created_at': DateTime.now().toIso8601String(),
-          // updated_at intentionally omitted — DB trigger sets it to now()
-        })
+        .upsert(
+          {
+            'user_id': _userId,
+            'media_item_id': persistedItem.id,
+            'status': status,
+            'rating': ?rating,
+            'notes': notes?.isNotEmpty == true ? notes : null,
+            'start_date': ?startDate?.toIso8601String().substring(0, 10),
+            'end_date': ?endDate?.toIso8601String().substring(0, 10),
+            'progress_count': ?progressCount,
+            'deleted_at': null,
+            'created_at': DateTime.now().toIso8601String(),
+            // updated_at intentionally omitted — DB trigger sets it to now()
+          },
+          onConflict: 'user_id,media_item_id',
+        )
         .select('*, media_items(*)')
         .single();
 

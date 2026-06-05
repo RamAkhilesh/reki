@@ -121,9 +121,14 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   }
 
   Future<void> signInWithGoogle() async {
+    state = const AsyncData(AuthStateLoading());
     try {
-      await _repo.signInWithGoogle();
-      // Auth state updates via the stream listener when OAuth completes
+      final didSignIn = await _repo.signInWithGoogle();
+      if (!didSignIn) {
+        // User dismissed the picker — not an error
+        state = const AsyncData(AuthStateUnauthenticated());
+      }
+      // On success the stream listener in build() updates state automatically
     } on sb.AuthException catch (e) {
       state = AsyncData(AuthStateError(e.message));
     } catch (e) {

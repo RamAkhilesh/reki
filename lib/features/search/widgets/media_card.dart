@@ -13,7 +13,7 @@ class MediaCard extends StatelessWidget {
   final MediaItem item;
   final bool inLibrary;
   final VoidCallback? onTap;
-  final VoidCallback? onDoubleTap;
+  final VoidCallback? onLongPress;
   final VoidCallback? onAdd;
 
   const MediaCard({
@@ -21,7 +21,7 @@ class MediaCard extends StatelessWidget {
     required this.item,
     this.inLibrary = false,
     this.onTap,
-    this.onDoubleTap,
+    this.onLongPress,
     this.onAdd,
   });
 
@@ -32,7 +32,7 @@ class MediaCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      onDoubleTap: onDoubleTap,
+      onLongPress: onLongPress,
       child: SizedBox(
         width: 112,
         child: Padding(

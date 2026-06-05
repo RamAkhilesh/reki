@@ -34,7 +34,7 @@ class MediaDetailScreen extends ConsumerStatefulWidget {
 class _MediaDetailScreenState extends ConsumerState<MediaDetailScreen> {
   bool _castExpanded = false;
   final ScrollController _scrollCtrl = ScrollController();
-  bool _showTopBar = true;
+  final _showTopBar = ValueNotifier<bool>(true);
   double _lastScrollOffset = 0;
   Color? _ambientColor;
 
@@ -65,6 +65,7 @@ class _MediaDetailScreenState extends ConsumerState<MediaDetailScreen> {
   void dispose() {
     _scrollCtrl.removeListener(_onScroll);
     _scrollCtrl.dispose();
+    _showTopBar.dispose();
     super.dispose();
   }
 
@@ -72,11 +73,11 @@ class _MediaDetailScreenState extends ConsumerState<MediaDetailScreen> {
     final offset = _scrollCtrl.offset;
     final delta = offset - _lastScrollOffset;
     if (offset <= 0) {
-      if (!_showTopBar) setState(() => _showTopBar = true);
-    } else if (delta > 4 && _showTopBar) {
-      setState(() => _showTopBar = false);
-    } else if (delta < -4 && !_showTopBar) {
-      setState(() => _showTopBar = true);
+      if (!_showTopBar.value) _showTopBar.value = true;
+    } else if (delta > 4 && _showTopBar.value) {
+      _showTopBar.value = false;
+    } else if (delta < -4 && !_showTopBar.value) {
+      _showTopBar.value = true;
     }
     _lastScrollOffset = offset;
   }
@@ -303,13 +304,15 @@ class _MediaDetailScreenState extends ConsumerState<MediaDetailScreen> {
           ),
 
           // ── Floating top bar ──────────────────────────────
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOut,
-            top: _showTopBar ? 0 : -(MediaQuery.of(context).padding.top + 64),
-            left: 0,
-            right: 0,
-            child: SafeArea(
+          ValueListenableBuilder<bool>(
+            valueListenable: _showTopBar,
+            builder: (ctx, showTopBar, _) => AnimatedPositioned(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              top: showTopBar ? 0 : -(MediaQuery.of(context).padding.top + 64),
+              left: 0,
+              right: 0,
+              child: SafeArea(
               bottom: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(18, 10, 18, 0),
@@ -354,6 +357,7 @@ class _MediaDetailScreenState extends ConsumerState<MediaDetailScreen> {
                 ),
               ),
             ),
+          ),
           ),
         ],
       ),
