@@ -33,14 +33,9 @@ class SyncResolver {
   Future<SyncResult> resolve() async {
     final localAll = await _local.loadAllForSync();
     if (localAll.isEmpty) {
-      // Nothing local — count remote items as "from other devices."
-      final remote = await _remote.fetchAllForSync();
-      final addedFromRemote =
-          remote.where((r) => r.deletedAt == null).length;
-      return SyncResult(
-        addedFromRemote: addedFromRemote,
-        pushedToRemote: 0,
-      );
+      // No local guest bookmarks to merge — skip the remote fetch entirely.
+      // The caller (BookmarkListNotifier) will fetch the authoritative list via fetchBookmarks().
+      return const SyncResult(addedFromRemote: 0, pushedToRemote: 0);
     }
 
     final remoteAll = await _remote.fetchAllForSync();

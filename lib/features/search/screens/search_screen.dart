@@ -17,6 +17,7 @@ import '../../../data/models/media_item.dart';
 import '../../../shared/widgets/glass_card.dart';
 import '../../bookmarks/providers/bookmark_providers.dart';
 import '../../bookmarks/widgets/add_edit_bookmark_sheet.dart';
+import '../../library/providers/library_providers.dart';
 import '../providers/search_providers.dart';
 import '../widgets/search_filter_sheet.dart';
 
@@ -281,6 +282,13 @@ class _DiscoveryFeed extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Don't read discovery providers while this tab is offscreen.
+    // FutureProvider.autoDispose keeps them disposed until first read,
+    // so the 6 API calls only fire when the user actually opens Search.
+    if (ref.watch(shellTabIndexProvider) != ShellTab.search) {
+      return const SizedBox.shrink();
+    }
+
     return CustomScrollView(
       slivers: [
         _PrismCarouselSection(
@@ -432,6 +440,7 @@ class _PrismDiscoverCard extends StatelessWidget {
                           width: 150,
                           height: 170,
                           fit: BoxFit.cover,
+                          memCacheWidth: 300,
                         )
                       : Container(
                           width: 150,
@@ -635,34 +644,38 @@ class _ResultsPanelState extends ConsumerState<_ResultsPanel> {
 
     // Empty query — prompt
     if (searchState.query.trim().isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GlassCard(
-              radius: 28,
-              child: const SizedBox(
-                width: 64, height: 64,
-                child: Center(
-                  child: Icon(Icons.search_rounded, size: 28, color: Colors.white70),
+      return Padding(
+        padding: const EdgeInsets.only(top: 48),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GlassCard(
+                radius: 28,
+                child: const SizedBox(
+                  width: 64, height: 64,
+                  child: Center(
+                    child: Icon(Icons.search_rounded, size: 28, color: Colors.white70),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'What are you looking for?',
-              style: GoogleFonts.inter(
-                fontSize: 17, fontWeight: FontWeight.w700, color: ink,
-                letterSpacing: -0.02,
+              const SizedBox(height: 16),
+              Text(
+                'What are you looking for?',
+                style: GoogleFonts.inter(
+                  fontSize: 17, fontWeight: FontWeight.w700, color: ink,
+                  letterSpacing: -0.02,
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Movies · shows · anime\nmanga · books · games',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(fontSize: 13, color: inkDim, height: 1.5),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                'Movies · shows · anime\nmanga · books · games',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(fontSize: 13, color: inkDim, height: 1.5),
+              ),
+            ],
+          ),
         ),
       ).animate().fadeIn(duration: 250.ms);
     }

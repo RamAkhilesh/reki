@@ -38,6 +38,7 @@ class ShellScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: P.bg(context),
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // ── Screens ────────────────────────────────────────
@@ -277,7 +278,7 @@ class _NavItemState extends State<_NavItem> with TickerProviderStateMixin {
         curve: Curves.easeOut,
         padding: EdgeInsets.symmetric(
           horizontal: widget.active ? 26 : 22,
-          vertical: 18,
+          vertical: 13,
         ),
         decoration: deco,
         child: Row(

@@ -38,6 +38,7 @@ class PosterGridCard extends StatelessWidget {
                 ? CachedNetworkImage(
                     imageUrl: item.posterUrl!,
                     fit: BoxFit.cover,
+                    memCacheWidth: 200,
                     placeholder: (_, _) =>
                         Container(color: cs.surfaceContainerHighest),
                     errorWidget: (_, _, _) => _GridFallback(cs: cs),

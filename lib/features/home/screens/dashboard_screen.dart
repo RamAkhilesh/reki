@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:palette_generator/palette_generator.dart';
 
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/prism_tokens.dart';
@@ -283,6 +282,7 @@ class _ContinueCard extends StatelessWidget {
                         width: 70,
                         height: 128,
                         fit: BoxFit.cover,
+                        memCacheWidth: 140,
                       )
                     : Container(
                         width: 70,
@@ -385,6 +385,7 @@ class _PosterCard extends StatelessWidget {
                       width: 130,
                       height: 200,
                       fit: BoxFit.cover,
+                      memCacheWidth: 260,
                     )
                   : Container(
                       width: 130,
@@ -446,7 +447,7 @@ class _PosterCard extends StatelessWidget {
 
 // ── Category glass card ───────────────────────────────────────
 
-class _CategoryGlassCard extends StatefulWidget {
+class _CategoryGlassCard extends StatelessWidget {
   const _CategoryGlassCard({
     required this.stats,
     required this.fallbackTint,
@@ -457,64 +458,14 @@ class _CategoryGlassCard extends StatefulWidget {
   final Color fallbackTint;
   final VoidCallback onTap;
 
-  @override
-  State<_CategoryGlassCard> createState() => _CategoryGlassCardState();
-}
-
-class _CategoryGlassCardState extends State<_CategoryGlassCard> {
-  Color? _extractedColor;
-  bool _extracting = false;
-  String? _lastExtractedUrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _extractColor();
-  }
-
-  @override
-  void didUpdateWidget(_CategoryGlassCard old) {
-    super.didUpdateWidget(old);
-    final newUrl = widget.stats.recentFour.firstOrNull?.mediaItem.posterUrl;
-    if (newUrl != _lastExtractedUrl) {
-      _extractedColor = null;
-      _extractColor();
-    }
-  }
-
-  Future<void> _extractColor() async {
-    if (_extracting) return;
-    final url = widget.stats.recentFour.firstOrNull?.mediaItem.posterUrl;
-    if (url == null) return;
-    _extracting = true;
-    _lastExtractedUrl = url;
-    try {
-      final palette = await PaletteGenerator.fromImageProvider(
-        CachedNetworkImageProvider(url),
-        size: const Size(80, 120),
-        maximumColorCount: 16,
-      );
-      final color = palette.dominantColor?.color
-          ?? palette.mutedColor?.color
-          ?? palette.vibrantColor?.color;
-      if (color != null && mounted) {
-        setState(() => _extractedColor = color);
-      }
-    } catch (_) {
-      // fall back to fallbackTint silently
-    } finally {
-      _extracting = false;
-    }
-  }
-
   static (Color, Color) _typeBadge(String type, ColorScheme cs) =>
       switch (type) {
-        'movie' => (cs.primaryContainer,   cs.onPrimaryContainer),
-        'tv'    => (cs.secondaryContainer, cs.onSecondaryContainer),
-        'anime' => (cs.tertiaryContainer,  cs.onTertiaryContainer),
-        'manga' => (cs.errorContainer,     cs.onErrorContainer),
+        'movie' => (cs.primaryContainer,        cs.onPrimaryContainer),
+        'tv'    => (cs.secondaryContainer,      cs.onSecondaryContainer),
+        'anime' => (cs.tertiaryContainer,       cs.onTertiaryContainer),
+        'manga' => (cs.errorContainer,          cs.onErrorContainer),
         'game'  => (cs.surfaceContainerHighest, cs.onSurfaceVariant),
-        'book'  => (cs.secondaryContainer, cs.onSecondaryContainer),
+        'book'  => (cs.secondaryContainer,      cs.onSecondaryContainer),
         _       => (cs.surfaceContainerHighest, cs.onSurfaceVariant),
       };
 
@@ -540,15 +491,14 @@ class _CategoryGlassCardState extends State<_CategoryGlassCard> {
 
   @override
   Widget build(BuildContext context) {
-    final tint   = _extractedColor ?? widget.fallbackTint;
     final ink    = P.ink(context);
     final inkDim = P.inkDim(context);
     final cs     = Theme.of(context).colorScheme;
-    final (iconBg, iconFg) = _typeBadge(widget.stats.mediaType, cs);
-    final coverUrl = widget.stats.recentFour.firstOrNull?.mediaItem.posterUrl;
+    final (iconBg, iconFg) = _typeBadge(stats.mediaType, cs);
+    final coverUrl = stats.recentFour.firstOrNull?.mediaItem.posterUrl;
 
     return GestureDetector(
-      onTap: widget.onTap,
+      onTap: onTap,
       child: GlassCard(
         radius: 20,
         tint: null,
@@ -576,12 +526,12 @@ class _CategoryGlassCardState extends State<_CategoryGlassCard> {
                             color: iconBg,
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Icon(_typeIcon(widget.stats.mediaType), color: iconFg, size: 16),
+                          child: Icon(_typeIcon(stats.mediaType), color: iconFg, size: 16),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            _typeLabel(widget.stats.mediaType),
+                            _typeLabel(stats.mediaType),
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -594,7 +544,7 @@ class _CategoryGlassCardState extends State<_CategoryGlassCard> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '${widget.stats.total}',
+                          '${stats.total}',
                           style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
@@ -617,8 +567,9 @@ class _CategoryGlassCardState extends State<_CategoryGlassCard> {
                                 width: double.infinity,
                                 height: double.infinity,
                                 fit: BoxFit.cover,
-                                placeholder: (_, _) => ColoredBox(color: tint.withAlpha(30)),
-                                errorWidget: (_, _, _) => ColoredBox(color: tint.withAlpha(30)),
+                                memCacheWidth: 300,
+                                placeholder: (_, _) => ColoredBox(color: fallbackTint.withAlpha(30)),
+                                errorWidget: (_, _, _) => ColoredBox(color: fallbackTint.withAlpha(30)),
                               )
                             : Center(
                                 child: Column(

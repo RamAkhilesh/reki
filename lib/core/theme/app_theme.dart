@@ -59,7 +59,9 @@ class AppTheme {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        color: scheme.surfaceContainerLow,
+        color: scheme.brightness == Brightness.dark
+            ? const Color(0xFF242428)
+            : scheme.surfaceContainerLow,
         surfaceTintColor: Colors.transparent,
         margin: EdgeInsets.zero,
       ),

@@ -1,0 +1,71 @@
+name: Build & Release APK
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Build release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: reki
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > reki/android/app/reki-release.jks
+
+      - name: Create key.properties
+        run: |
+          cat > reki/android/key.properties <<EOF
+          storePassword=${{ secrets.STORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=reki-release.jks
+          EOF
+
+      - name: Create secrets.json
+        run: |
+          cat > reki/secrets.json <<EOF
+          {
+            "SUPABASE_URL": "${{ secrets.SUPABASE_URL }}",
+            "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_ANON_KEY }}",
+            "TMDB_TOKEN": "${{ secrets.TMDB_TOKEN }}",
+            "GOOGLE_BOOKS_KEY": "${{ secrets.GOOGLE_BOOKS_KEY }}",
+            "RAWG_KEY": "${{ secrets.RAWG_KEY }}",
+            "GOOGLE_WEB_CLIENT_ID": "${{ secrets.GOOGLE_WEB_CLIENT_ID }}",
+            "GOOGLE_IOS_CLIENT_ID": "${{ secrets.GOOGLE_IOS_CLIENT_ID }}"
+          }
+          EOF
+
+      - name: Build release APK
+        run: flutter build apk --release --dart-define-from-file=secrets.json
+        working-directory: reki
+
+      - name: Rename APK
+        run: |
+          VERSION=$(grep '^version:' reki/pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          cp reki/build/app/outputs/flutter-apk/app-release.apk reki-v${VERSION}.apk
+
+      - name: Upload APK to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: reki-v*.apk

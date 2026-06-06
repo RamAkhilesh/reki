@@ -42,6 +42,7 @@ class ComfortableGridCard extends StatelessWidget {
                         ? CachedNetworkImage(
                             imageUrl: item.posterUrl!,
                             fit: BoxFit.cover,
+                            memCacheWidth: 260,
                             placeholder: (_, _) =>
                                 Container(color: cs.surfaceContainerHighest),
                             errorWidget: (_, _, _) => _Fallback(cs: cs),

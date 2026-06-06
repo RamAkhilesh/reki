@@ -42,6 +42,10 @@ class BookmarkListNotifier extends AsyncNotifier<List<Bookmark>> {
   late BookmarkRepository _repo;
   late LocalBookmarkStore _local;
 
+  // Tracks whether the one-time guest→authenticated sync has already run for
+  // this notifier lifetime. Prevents re-running on every token-refresh event.
+  bool _syncDone = false;
+
   @override
   Future<List<Bookmark>> build() async {
     _repo = ref.read(bookmarkRepositoryProvider);
@@ -50,22 +54,27 @@ class BookmarkListNotifier extends AsyncNotifier<List<Bookmark>> {
     final authState = ref.watch(authProvider).value;
 
     if (authState is AuthStateAuthenticated) {
-      final result = await SyncResolver(
-        remote: _repo,
-        local: _local,
-      ).resolve();
+      if (!_syncDone) {
+        _syncDone = true;
+        final result = await SyncResolver(
+          remote: _repo,
+          local: _local,
+        ).resolve();
 
-      // Publish result so the shell screen can show the snackbar.
-      // Use Future.microtask to avoid modifying another provider mid-build.
-      if (result.hasChanges) {
-        Future.microtask(
-          () => ref.read(syncResultProvider.notifier).state = result,
-        );
+        // Publish result so the shell screen can show the snackbar.
+        // Use Future.microtask to avoid modifying another provider mid-build.
+        if (result.hasChanges) {
+          Future.microtask(
+            () => ref.read(syncResultProvider.notifier).state = result,
+          );
+        }
       }
 
       return _repo.fetchBookmarks();
     }
 
+    // Reset so sync runs again after the next sign-in.
+    _syncDone = false;
     // Guest mode: load active (non-deleted) bookmarks from local storage.
     return _local.loadAll();
   }

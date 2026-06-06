@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "reki (debug)",
+      "request": "launch",
+      "type": "dart",
+      "args": ["--dart-define-from-file=secrets.json"]
+    },
+    {
+      "name": "reki (profile)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "profile",
+      "args": ["--dart-define-from-file=secrets.json"]
+    }
+  ]
+}

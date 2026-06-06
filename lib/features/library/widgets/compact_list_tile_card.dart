@@ -45,6 +45,7 @@ class CompactListTileCard extends StatelessWidget {
                         width: 48,
                         height: 68,
                         fit: BoxFit.cover,
+                        memCacheWidth: 96,
                         placeholder: (_, _) =>
                             Container(color: cs.surfaceContainerHighest),
                         errorWidget: (_, _, _) => _Fallback(cs: cs),

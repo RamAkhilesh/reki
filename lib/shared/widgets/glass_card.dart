@@ -30,9 +30,8 @@ class GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dark = P.isDark(context);
-    // More opaque than P.glass since there is no blur to add depth.
     final glass = dark
-        ? Colors.white.withAlpha(38)   // 0.15
+        ? P.glassStrong(context)       // ~10% white ≈ #323234 on near-black
         : Colors.white.withAlpha(210); // 0.82
     final bdr   = P.border(context);
 

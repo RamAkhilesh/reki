@@ -101,9 +101,7 @@ class _SearchFilterSheetState extends State<SearchFilterSheet> {
         filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
         child: Container(
           decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF10101A).withAlpha(235)
-                : const Color(0xFFFCFBF7).withAlpha(245),
+            color: P.bg(context).withAlpha(240),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             border: Border(top: BorderSide(color: P.border(context), width: 0.5)),
           ),
