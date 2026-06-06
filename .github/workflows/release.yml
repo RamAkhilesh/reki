@@ -27,15 +27,14 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-        working-directory: reki
 
       - name: Decode keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > reki/android/app/reki-release.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/reki-release.jks
 
       - name: Create key.properties
         run: |
-          cat > reki/android/key.properties <<EOF
+          cat > android/key.properties <<EOF
           storePassword=${{ secrets.STORE_PASSWORD }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
@@ -44,7 +43,7 @@ jobs:
 
       - name: Create secrets.json
         run: |
-          cat > reki/secrets.json <<EOF
+          cat > secrets.json <<EOF
           {
             "SUPABASE_URL": "${{ secrets.SUPABASE_URL }}",
             "SUPABASE_ANON_KEY": "${{ secrets.SUPABASE_ANON_KEY }}",
@@ -58,12 +57,11 @@ jobs:
 
       - name: Build release APK
         run: flutter build apk --release --dart-define-from-file=secrets.json
-        working-directory: reki
 
       - name: Rename APK
         run: |
-          VERSION=$(grep '^version:' reki/pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
-          cp reki/build/app/outputs/flutter-apk/app-release.apk reki-v${VERSION}.apk
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d'+' -f1)
+          cp build/app/outputs/flutter-apk/app-release.apk reki-v${VERSION}.apk
 
       - name: Upload APK to release
         uses: softprops/action-gh-release@v2
