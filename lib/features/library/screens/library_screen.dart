@@ -396,12 +396,12 @@ class _LibraryTabViewState extends ConsumerState<_LibraryTabView>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.filter_list_rounded, size: 13, color: P.inkDim(context)),
-                  const SizedBox(width: 4),
+                  Icon(Icons.filter_list_rounded, size: 17, color: P.inkDim(context)),
+                  const SizedBox(width: 5),
                   Text(
                     'Sort & filter',
                     style: GoogleFonts.inter(
-                      fontSize: 11, fontWeight: FontWeight.w500, color: P.inkDim(context),
+                      fontSize: 13, fontWeight: FontWeight.w500, color: P.inkDim(context),
                     ),
                   ),
                 ],

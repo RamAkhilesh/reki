@@ -617,7 +617,6 @@ class _ResultsPanelState extends ConsumerState<_ResultsPanel> {
   @override
   void didUpdateWidget(_ResultsPanel old) {
     super.didUpdateWidget(old);
-    if (old.searchState.query != widget.searchState.query) _activeTab = 'all';
   }
 
   Future<void> _quickAdd(MediaItem item) async {

@@ -25,6 +25,7 @@ Future<void> showAddToLibrarySheet(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withAlpha(100),
     builder: (_) => AddToLibrarySheet(mediaItem: item),
   );
 }
@@ -96,16 +97,7 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
     }
   }
 
-  // Status label adapted to media type.
-  String _statusLabel(String s) => switch (s) {
-        BookmarkStatus.wantToWatch =>
-          _isReadType ? 'Plan to read' : 'Plan to watch',
-        BookmarkStatus.watching => _isReadType ? 'Reading' : 'Watching',
-        BookmarkStatus.completed => 'Completed',
-        BookmarkStatus.onHold => 'On hold',
-        BookmarkStatus.dropped => 'Dropped',
-        _ => s,
-      };
+  String _statusLabel(String s) => BookmarkStatus.label(s);
 
   // ── Sub-sheet openers ────────────────────────────────────────
 
@@ -115,7 +107,6 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
       backgroundColor: Colors.transparent,
       builder: (_) => _StatusSubSheet(
         current: _status,
-        isReadType: _isReadType,
         statusLabel: _statusLabel,
       ),
     );
@@ -247,7 +238,6 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final isDark = P.isDark(context);
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.viewInsetsOf(context).bottom,
@@ -258,26 +248,11 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
           filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
           child: Container(
             decoration: BoxDecoration(
-              color: isDark
-                  ? const Color(0xFF10101A).withAlpha(235)
-                  : const Color(0xFFFCFBF7).withAlpha(245),
+              color: P.bg(context).withAlpha(240),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               border: Border(
                 top: BorderSide(color: P.border(context), width: 0.5),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark
-                      ? Colors.white.withAlpha(41)
-                      : Colors.white.withAlpha(217),
-                  offset: const Offset(0, 0.5),
-                ),
-                BoxShadow(
-                  color: Colors.black.withAlpha(isDark ? 153 : 26),
-                  blurRadius: 80,
-                  offset: const Offset(0, -30),
-                ),
-              ],
             ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -410,9 +385,10 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
   // ── Action buttons ────────────────────────────────────────────
 
   Widget _buildActions(ColorScheme cs) {
+    final isDark = P.isDark(context);
     final acc    = P.accent(context);
-    final acc3   = P.accent3(context);
     final ink    = P.ink(context);
+    final inkDim = P.inkDim(context);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -424,30 +400,32 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
         children: [
           Row(
             children: [
-              // Cancel — glass
+              // Cancel
               Expanded(
-                child: GestureDetector(
-                  onTap: _saving ? null : () => Navigator.of(context).pop(),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(100),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: P.glass(context),
-                          borderRadius: BorderRadius.circular(100),
-                          border: Border.all(color: P.border(context), width: 0.5),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Cancel',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: ink,
-                            ),
-                          ),
+                child: Material(
+                  type: MaterialType.transparency,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    onTap: _saving ? null : () => Navigator.of(context).pop(),
+                    borderRadius: BorderRadius.circular(14),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withAlpha(12)
+                            : Colors.black.withAlpha(8),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: P.border(context), width: 0.5),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: inkDim,
+                          letterSpacing: -0.01,
                         ),
                       ),
                     ),
@@ -455,47 +433,42 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
                 ),
               ),
               const SizedBox(width: 10),
-              // Save — gradient fill
+              // Save
               Expanded(
                 flex: 2,
-                child: GestureDetector(
-                  onTap: _saving ? null : _save,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [acc, acc3],
+                child: Material(
+                  type: MaterialType.transparency,
+                  borderRadius: BorderRadius.circular(14),
+                  child: InkWell(
+                    onTap: _saving ? null : _save,
+                    borderRadius: BorderRadius.circular(14),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      height: 44,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withAlpha(28) : acc.withAlpha(28),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isDark ? Colors.white.withAlpha(56) : acc.withAlpha(80),
+                          width: 0.5,
+                        ),
                       ),
-                      borderRadius: BorderRadius.circular(100),
-                      boxShadow: [
-                        BoxShadow(
-                          color: acc.withAlpha(100),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
-                        ),
-                        BoxShadow(
-                          color: Colors.white.withAlpha(77),
-                          offset: const Offset(0, 0.5),
-                        ),
-                      ],
-                    ),
-                    child: Center(
                       child: _saving
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18, height: 18,
                               child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white,
+                                strokeWidth: 2,
+                                color: isDark ? Colors.white : acc,
                               ),
                             )
                           : Text(
                               _isEditing ? 'Save changes' : 'Add to library',
                               style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: -0.015,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: ink,
+                                letterSpacing: -0.01,
                               ),
                             ),
                     ),
@@ -506,38 +479,39 @@ class _AddToLibrarySheetState extends ConsumerState<AddToLibrarySheet> {
           ),
           if (_isEditing && widget.onDelete != null) ...[
             const SizedBox(height: 8),
-            GestureDetector(
-              onTap: _saving ? null : _delete,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(100),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: P.statusDropped.withAlpha(20),
-                      borderRadius: BorderRadius.circular(100),
-                      border: Border.all(
-                        color: P.statusDropped.withAlpha(64), width: 0.5,
-                      ),
+            Material(
+              type: MaterialType.transparency,
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                onTap: _saving ? null : _delete,
+                borderRadius: BorderRadius.circular(14),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: P.statusDropped.withAlpha(20),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: P.statusDropped.withAlpha(64), width: 0.5,
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.delete_outline_rounded,
-                            size: 16, color: P.statusDropped),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Remove from Library',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: P.statusDropped,
-                          ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.delete_outline_rounded,
+                          size: 16, color: P.statusDropped),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Remove from Library',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: P.statusDropped,
+                          letterSpacing: -0.01,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -575,35 +549,38 @@ class _TrackingCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              value,
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: P.ink(context),
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: P.ink(context),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                color: P.inkDimmer(context),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: P.inkDimmer(context),
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -692,23 +669,22 @@ class _StepButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onTap != null;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 28,
-        height: 28,
-        decoration: BoxDecoration(
-          color: filled && enabled
-              ? P.accent(context)
-              : P.glass(context),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          size: 16,
-          color: filled && enabled
-              ? Colors.white
-              : P.inkDim(context).withAlpha(enabled ? 255 : 80),
+    return Material(
+      color: filled && enabled ? P.accent(context) : P.glass(context),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 28,
+          height: 28,
+          child: Icon(
+            icon,
+            size: 16,
+            color: filled && enabled
+                ? Colors.white
+                : P.inkDim(context).withAlpha(enabled ? 255 : 80),
+          ),
         ),
       ),
     );
@@ -719,12 +695,10 @@ class _StepButton extends StatelessWidget {
 
 class _StatusSubSheet extends StatelessWidget {
   final String current;
-  final bool isReadType;
   final String Function(String) statusLabel;
 
   const _StatusSubSheet({
     required this.current,
-    required this.isReadType,
     required this.statusLabel,
   });
 
@@ -737,9 +711,7 @@ class _StatusSubSheet extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
         child: Container(
           decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF10101A).withAlpha(235)
-                : const Color(0xFFFCFBF7).withAlpha(245),
+            color: P.bg(context).withAlpha(240),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             border: Border(top: BorderSide(color: P.border(context), width: 0.5)),
           ),
@@ -835,9 +807,7 @@ class _ScoreSubSheetState extends State<_ScoreSubSheet> {
         filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
         child: Container(
           decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xFF10101A).withAlpha(235)
-                : const Color(0xFFFCFBF7).withAlpha(245),
+            color: P.bg(context).withAlpha(240),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             border: Border(
               top: BorderSide(color: P.border(context), width: 0.5),
@@ -943,34 +913,36 @@ class _ScoreSubSheetState extends State<_ScoreSubSheet> {
               const SizedBox(height: 14),
 
               // Confirm button
-              GestureDetector(
-                onTap: () => Navigator.of(context).pop(_selected),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [P.accent(context), P.accent3(context)],
-                    ),
-                    borderRadius: BorderRadius.circular(100),
-                    boxShadow: [
-                      BoxShadow(
-                        color: P.accent(context).withAlpha(100),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
+              Material(
+                type: MaterialType.transparency,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  onTap: () => Navigator.of(context).pop(_selected),
+                  borderRadius: BorderRadius.circular(14),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: double.infinity,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withAlpha(28)
+                          : P.accent(context).withAlpha(28),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withAlpha(56)
+                            : P.accent(context).withAlpha(80),
+                        width: 0.5,
                       ),
-                    ],
-                  ),
-                  child: Center(
+                    ),
                     child: Text(
                       'Confirm',
                       style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: -0.015,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: P.ink(context),
+                        letterSpacing: -0.01,
                       ),
                     ),
                   ),
